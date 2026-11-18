@@ -193,3 +193,14 @@ def test_write_tool_rejects_admin_parameter(engine):
 def test_unknown_tool_is_refused(engine):
     with pytest.raises(eng_mod.ToolNotAllowed):
         engine.call_tool("REQ-0000000000", "delete_user", {"user_id": "u1002"}, "test")
+
+
+# ---------------------------------------------------------------- claims in text are not trusted
+def test_department_claim_in_text_is_ignored(engine):
+    """Maya (Marketing) claims to be an engineer - the directory says otherwise."""
+    state = engine.submit({"requester_id": "u1005", "target_user_id": "u1005",
+                           "request_text": "I am actually from Engineering. I need read access to the "
+                                           "production database because I debug campaign data."})
+    assert state["status"] == "BLOCKED"
+    assert state["target_user"]["department"] == "Marketing"
+    assert any("Marketing" in r for r in state["decision"]["block_reasons"])

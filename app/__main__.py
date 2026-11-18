@@ -9,6 +9,7 @@ CLI:  python -m app <command>
   status  <REQ-id>
   audit   [REQ-id]
   report                                 generate reports/as_built.html
+  interactive                            type your own request, then approve/reject it yourself
 """
 from __future__ import annotations
 
@@ -56,6 +57,37 @@ def show(state: dict) -> None:
     print()
 
 
+def interactive(eng: Engine) -> None:
+    """You type a new request, then you play the manager. Nothing is scripted."""
+    users = json.loads(eng.tools.directory_path.read_text(encoding="utf-8"))["users"]
+    print("\n  Employees in the directory:")
+    for u in users:
+        print(f"    {u['user_id']}  {u['name']:<16} {u['department']:<12} manager={u['manager_id']}  {u['status']}")
+    print()
+    target = input("  Employee who needs access (e.g. u1002): ").strip()
+    requester = input(f"  Who is submitting? [Enter = {target}]: ").strip() or target
+    text = input("  Request text (free text, English):\n  > ").strip()
+
+    state = eng.submit({"requester_id": requester, "target_user_id": target, "request_text": text})
+    show(state)
+    if state["status"] != "AWAITING_APPROVAL":
+        print("  The system stopped here - nothing was sent for approval, nothing was executed.\n")
+        return
+
+    rid = state["request_id"]
+    print(f"  ⏸  Waiting for approval by the direct manager ({state['approver_required']}).")
+    approver = input("  Approve as which user id? ").strip()
+    answer = input("  Approve? (y/n): ").strip().lower()
+    reason = input("  Reason (optional): ").strip()
+    try:
+        state = eng.decide(rid, approver, answer == "y", reason)
+    except ApprovalError as err:
+        print(f"\n  ✗ APPROVAL REFUSED: {err}\n"); return
+    show(state)
+    if state["status"] == "APPROVED":
+        show(eng.execute(rid))
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="python -m app")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -69,6 +101,7 @@ def main(argv=None) -> int:
     st = sub.add_parser("status"); st.add_argument("rid")
     au = sub.add_parser("audit"); au.add_argument("rid", nargs="?")
     sub.add_parser("report")
+    sub.add_parser("interactive")
     args = ap.parse_args(argv)
 
     if args.cmd == "reset":
@@ -87,6 +120,8 @@ def main(argv=None) -> int:
         elif args.cmd == "audit":
             for e_ in eng.audit.read(args.rid):
                 print(json.dumps(e_, ensure_ascii=False))
+        elif args.cmd == "interactive":
+            interactive(eng)
         elif args.cmd == "report":
             from .report import generate
             print(f"written: {generate(eng)}")
