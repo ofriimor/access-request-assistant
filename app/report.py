@@ -36,7 +36,14 @@ def generate(engine, out: Path | None = None) -> Path:
     audits = {r["request_id"]: engine.audit.read(r["request_id"]) for r in requests}
     intake_rejections = [e for e in engine.audit.read() if e["request_id"] is None]
     assets = PROJECT_ROOT / "assets"
-    logo = (assets / "logo.svg").read_text(encoding="utf-8") if (assets / "logo.svg").exists() else ""
+    import base64
+    if (assets / "logo-bynet.png").exists():      # main project logo (PNG) wins if present
+        data = base64.b64encode((assets / "logo-bynet.png").read_bytes()).decode()
+        logo = f'<img src="data:image/png;base64,{data}" alt="Access Request Assistant" style="height:72px">'
+    elif (assets / "logo.svg").exists():
+        logo = (assets / "logo.svg").read_text(encoding="utf-8")
+    else:
+        logo = ""
     client_logo = None   # optional: the client's logo file, added by you, shown unmodified
     for name in ("client-logo.svg", "client-logo.png"):
         f = assets / name
