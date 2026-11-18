@@ -1,9 +1,7 @@
+$ python -m pytest -q
+......................                                                   [100%]
+22 passed in 0.25s
 
-════════════════════════════════════════════════════════════════════════
-  0. Automated tests
-════════════════════════════════════════════════════════════════════════
-....................                                                     [100%]
-20 passed in 0.20s
 
 LLM provider: mock
 
@@ -41,7 +39,7 @@ LLM provider: mock
   Status  : COMPLETED
   Sources : POL-CRM-01 (34.98), POL-FIN-02 (6.91), POL-PROD-03 (4.81)
   Approval: APPROVED by u1001 covering northern region
-  Result  : GRT-a9c80b73 crm/write expires 2027-02-14T19:16:33+00:00
+  Result  : GRT-f6f60875 crm/write expires 2027-02-16T09:08:57+00:00
   Verify  : OK {'grant_exists': True, 'exactly_one_grant': True, 'system_matches': True, 'level_matches': True, 'has_expiry': True}
 
 
@@ -132,7 +130,7 @@ LLM provider: mock
   Status  : COMPLETED
   Sources : POL-CRM-01 (23.32), POL-HR-04 (4.81), POL-PROD-03 (4.81)
   Approval: APPROVED by u1001 
-  Result  : GRT-f2c044b0 crm/read expires 2027-01-15T19:16:34+00:00
+  Result  : GRT-08c07f06 crm/read expires 2027-01-17T09:08:58+00:00
   Verify  : OK {'grant_exists': True, 'exactly_one_grant': True, 'system_matches': True, 'level_matches': True, 'has_expiry': True}
 
 
@@ -144,7 +142,7 @@ LLM provider: mock
   Status  : COMPLETED
   Sources : POL-CRM-01 (34.98), POL-FIN-02 (6.91), POL-PROD-03 (4.81)
   Approval: APPROVED by u1001 covering northern region
-  Result  : GRT-a9c80b73 crm/write expires 2027-02-14T19:16:33+00:00
+  Result  : GRT-f6f60875 crm/write expires 2027-02-16T09:08:57+00:00
   Verify  : OK {'grant_exists': True, 'exactly_one_grant': True, 'system_matches': True, 'level_matches': True, 'has_expiry': True}
 
 
@@ -152,7 +150,7 @@ LLM provider: mock
   Status  : COMPLETED
   Sources : POL-CRM-01 (34.98), POL-FIN-02 (6.91), POL-PROD-03 (4.81)
   Approval: APPROVED by u1001 covering northern region
-  Result  : GRT-a9c80b73 crm/write expires 2027-02-14T19:16:33+00:00
+  Result  : GRT-f6f60875 crm/write expires 2027-02-16T09:08:57+00:00
   Verify  : OK {'grant_exists': True, 'exactly_one_grant': True, 'system_matches': True, 'level_matches': True, 'has_expiry': True}
 
   Grants for u1002 in directory: 1  (expected 1)
@@ -160,5 +158,5 @@ LLM provider: mock
 ════════════════════════════════════════════════════════════════════════
   REPORT
 ════════════════════════════════════════════════════════════════════════
-  As-Built: /home/claude/access-assistant/reports/as_built.html
-  Audit   : /home/claude/access-assistant/runtime/audit.jsonl
+  As-Built: reports/as_built.html
+  Audit   : runtime/audit.jsonl
