@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo-bynet.png" alt="Access Request Assistant for Bynet" width="640"></p>
+
 # Access Request Assistant
 
 **Use Case 3 · Access Request Assistant.** בדיקת בקשת הרשאה מול Directory ו־Policy, הערכת סיכון וביצוע לאחר Human Approval.
@@ -92,6 +94,11 @@ demo.py          כל התרחישים בפקודה אחת
 tests/           בדיקות אוטומטיות
 docs/LEARNING_GUIDE.md   הסבר מושגים וקוד
 ```
+
+## לוגו
+- `assets/logo-bynet.png`: הלוגו שמוצג בראש ה־README.
+- `assets/logo.svg` ו־`assets/logo-icon.svg`: לוגו נוסף של המערכת, שמשמש בדוח ה־As-Built.
+- **לוגו של לקוח (אופציונלי):** שמרו את קובץ הלוגו של הלקוח בשם `assets/client-logo.svg` (או `.png`), והוא יוצג כמו שהוא בכותרת דוח ה־As-Built, תחת הכיתוב "Prepared for".
 
 ## הנחות
 - חבילת ההתחלה עם ה־Sample Data לא התקבלה, ולכן נתוני הדוגמה ב־`data/` נבנו במיוחד לפרויקט. הם מכסים את כל תרחישי החובה. החלפה לנתונים אחרים דורשת רק החלפת הקבצים ב־`data/`, בלי שינוי קוד, כל עוד הם באותו מבנה.

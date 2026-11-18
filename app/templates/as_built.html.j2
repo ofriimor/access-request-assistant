@@ -36,7 +36,11 @@
 </head>
 <body><main>
 
-<h1>Access Request Assistant · As-Built</h1>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:10px;direction:ltr">
+  <div style="max-width:470px;width:100%">{{ logo_svg|safe }}</div>
+  {% if client_logo %}<div style="text-align:center;color:var(--muted);font-size:12px">Prepared for<br><img src="{{ client_logo }}" alt="client logo" style="height:40px;margin-top:4px"></div>{% endif %}
+</div>
+<h1>As-Built · מסמך מסירה</h1>
 <p class="sub">מסמך מסירה שנוצר אוטומטית מתוך State, Audit ותוצאות הבדיקות · <span class="ltr">{{ generated_at }}</span> · LLM provider: <span class="ltr">{{ llm }}</span></p>
 
 <div class="cards">

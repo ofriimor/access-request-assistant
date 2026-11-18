@@ -35,7 +35,19 @@ def generate(engine, out: Path | None = None) -> Path:
     requests = engine.store.all()
     audits = {r["request_id"]: engine.audit.read(r["request_id"]) for r in requests}
     intake_rejections = [e for e in engine.audit.read() if e["request_id"] is None]
+    assets = PROJECT_ROOT / "assets"
+    logo = (assets / "logo.svg").read_text(encoding="utf-8") if (assets / "logo.svg").exists() else ""
+    client_logo = None   # optional: the client's logo file, added by you, shown unmodified
+    for name in ("client-logo.svg", "client-logo.png"):
+        f = assets / name
+        if f.exists():
+            import base64
+            mime = "image/svg+xml" if f.suffix == ".svg" else "image/png"
+            client_logo = f"data:{mime};base64," + base64.b64encode(f.read_bytes()).decode()
+            break
     html = env.get_template("as_built.html.j2").render(
+        logo_svg=logo,
+        client_logo=client_logo,
         generated_at=now_iso(),
         llm=engine.llm.name,
         requests=requests,
