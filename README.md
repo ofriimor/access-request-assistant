@@ -16,20 +16,22 @@
 
 ---
 
-## Setup — Gemini only
+## התקנה והגדרה (Gemini)
 
-Python 3.10+ and `python -m pip install -r requirements.txt`.
-
-PowerShell:
-
+Python 3.10 ומעלה, ואז:
 ```powershell
-$env:GEMINI_API_KEY = Read-Host "New Gemini API key"
-$env:LLM_PROVIDER = "gemini"
-$env:LLM_MODEL = "gemini-2.5-flash-lite"
-python demo.py --pause --require-real-llm
+python -m pip install -r requirements.txt
+copy .env.example .env
 ```
+פתחו את `.env` ב־VS Code והדביקו את המפתח:
+```
+GEMINI_API_KEY=המפתח-שלכם
+LLM_PROVIDER=gemini
+LLM_MODEL=gemini-2.5-flash-lite
+```
+המערכת טוענת את `.env` אוטומטית בכל הרצה, ואין צורך להגדיר משתנים בטרמינל. הקובץ מופיע ב־`.gitignore`, כך שהמפתח נשאר במחשב ולא עולה ל־GitHub. ערך שמוגדר בטרמינל (`$env:...`) גובר על הקובץ.
 
-No OpenAI, Anthropic, or runtime mock providers are included. A valid Gemini API key and working Google Gemini API are mandatory. HTTP 404/503 from Google cannot be fixed by local code alone. Automated unit tests use an isolated fake to test application logic without spending tokens; those tests are not evidence of a live LLM call.
+Gemini הוא הספק היחיד בזמן ריצה, ואין Mock או ספק חלופי. בלי מפתח תקף המערכת עוצרת עם הודעה ברורה. הבדיקות האוטומטיות משתמשות ב־FakeLLM מבודד ולא צורכות טוקנים, ולכן הן לא מוכיחות קריאה אמיתית ל־API.
 
 ## הרצה בפקודה אחת
 ```bash
@@ -66,7 +68,7 @@ python -m app report
 ```bash
 python -m pytest -v
 ```
-יש 30 בדיקות (כולל בדיקות ספק LLM וכשלי תקשורת): Validation, Knowledge Match, חסימת Execute ללא אישור, אישור רק ע"י המנהל הישיר, שינוי התוכנית אחרי אישור, Missing Info, חסימה לפי Policy, Timeout עם Retry ו־Fail-safe, Recovery, פלט Tool פגום, Replay ו־Idempotency, Prompt Injection, Parameter Injection מ־LLM, ו־Tool שלא נמצא ב־Allowlist.
+יש 33 בדיקות (כולל בדיקות ספק LLM וכשלי תקשורת): Validation, Knowledge Match, חסימת Execute ללא אישור, אישור רק ע"י המנהל הישיר, שינוי התוכנית אחרי אישור, Missing Info, חסימה לפי Policy, Timeout עם Retry ו־Fail-safe, Recovery, פלט Tool פגום, Replay ו־Idempotency, Prompt Injection, Parameter Injection מ־LLM, ו־Tool שלא נמצא ב־Allowlist.
 
 ## תרחישי הדגמה (`data/requests/`)
 
@@ -86,6 +88,7 @@ python -m pytest -v
 
 ## מבנה הפרויקט
 ```
+app/config.py    טעינת .env (מפתח API והגדרות)
 app/schemas.py   חוזי נתונים (Pydantic)
 app/llm.py       שלב Understand: Gemini only
 app/tools.py     4 Tools + חיפוש ב-KB + failure injection

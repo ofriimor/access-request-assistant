@@ -89,6 +89,8 @@ def interactive(eng: Engine) -> None:
 
 
 def main(argv=None) -> int:
+    from .config import load_env
+    load_env()   # GEMINI_API_KEY etc. from .env (never committed)
     ap = argparse.ArgumentParser(prog="python -m app")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("reset")
@@ -111,7 +113,7 @@ def main(argv=None) -> int:
         eng = Engine()
     except ValueError as err:          # e.g. GEMINI_API_KEY not set
         print(f"\n  ✗ LLM not configured: {err}\n"
-              '    PowerShell: $env:GEMINI_API_KEY = Read-Host "Gemini API key"\n')
+              "    Copy .env.example to .env and put your key in it.\n")
         return 5
     try:
         if args.cmd == "submit":
