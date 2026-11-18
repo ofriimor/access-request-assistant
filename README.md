@@ -16,22 +16,26 @@
 
 ---
 
-## דרישות מקדימות
-- Python 3.10 ומעלה
-- `pip install -r requirements.txt` (מתקין pydantic, jinja2 ו־pytest)
-- **אופציונלי:** מפתח API ל־LLM אמיתי. בלי מפתח המערכת עובדת עם `MockLLM` דטרמיניסטי.
+## Setup — Gemini only
 
-```bash
-# Windows PowerShell:  $env:ANTHROPIC_API_KEY="sk-..."
-export ANTHROPIC_API_KEY=sk-...          # או OPENAI_API_KEY=sk-...
-export LLM_MODEL=claude-sonnet-5-5       # אופציונלי (ברירת מחדל). חלופה זולה: claude-haiku-5-5
-export LLM_PROVIDER=mock                 # לכפות Mock (למשל בדמו בלי אינטרנט)
+Python 3.10+ and `python -m pip install -r requirements.txt`.
+
+PowerShell:
+
+```powershell
+$env:GEMINI_API_KEY = Read-Host "New Gemini API key"
+$env:LLM_PROVIDER = "gemini"
+$env:LLM_MODEL = "gemini-2.5-flash-lite"
+python demo.py --pause --require-real-llm
 ```
+
+No OpenAI, Anthropic, or runtime mock providers are included. A valid Gemini API key and working Google Gemini API are mandatory. HTTP 404/503 from Google cannot be fixed by local code alone. Automated unit tests use an isolated fake to test application logic without spending tokens; those tests are not evidence of a live LLM call.
 
 ## הרצה בפקודה אחת
 ```bash
 python demo.py            # בדיקות, כל התרחישים ודוח As-Built
 python demo.py --pause    # עצירה בין התרחישים, לדמו חי
+python demo.py --pause --require-real-llm  # מומלץ לראיון: מסרב להציג Mock כ-LLM אמיתי
 ```
 התוצרים:
 - `reports/as_built.html`: מסמך המסירה
@@ -62,7 +66,7 @@ python -m app report
 ```bash
 python -m pytest -v
 ```
-יש 20 בדיקות: Validation, Knowledge Match, חסימת Execute ללא אישור, אישור רק ע"י המנהל הישיר, שינוי התוכנית אחרי אישור, Missing Info, חסימה לפי Policy, Timeout עם Retry ו־Fail-safe, Recovery, פלט Tool פגום, Replay ו־Idempotency, Prompt Injection, Parameter Injection מ־LLM, ו־Tool שלא נמצא ב־Allowlist.
+יש 30 בדיקות (כולל בדיקות ספק LLM וכשלי תקשורת): Validation, Knowledge Match, חסימת Execute ללא אישור, אישור רק ע"י המנהל הישיר, שינוי התוכנית אחרי אישור, Missing Info, חסימה לפי Policy, Timeout עם Retry ו־Fail-safe, Recovery, פלט Tool פגום, Replay ו־Idempotency, Prompt Injection, Parameter Injection מ־LLM, ו־Tool שלא נמצא ב־Allowlist.
 
 ## תרחישי הדגמה (`data/requests/`)
 
@@ -83,7 +87,7 @@ python -m pytest -v
 ## מבנה הפרויקט
 ```
 app/schemas.py   חוזי נתונים (Pydantic)
-app/llm.py       שלב Understand: Anthropic / OpenAI / Mock
+app/llm.py       שלב Understand: Gemini only
 app/tools.py     4 Tools + חיפוש ב-KB + failure injection
 app/guard.py     החלטה דטרמיניסטית + זיהוי injection
 app/state.py     State Machine + SQLite + טבלת idempotency
@@ -109,5 +113,12 @@ docs/LEARNING_GUIDE.md   הסבר מושגים וקוד
 
 ## כלים ששימשו בפיתוח
 - **Python, Pydantic, Jinja2, pytest, SQLite** (ספריית התקן).
-- **LLM בזמן ריצה:** Anthropic Claude או OpenAI (לבחירה), או Mock.
+- **LLM בזמן ריצה:** Google Gemini API בלבד, מודל `gemini-2.5-flash-lite`.
 - **כלי AI לפיתוח:** Claude (Anthropic) שימש ליצירת שלד הקוד, הבדיקות והתיעוד. עברתי על כל רכיב, הרצתי והתאמתי. *(עדכני את הסעיף לפי מה שעשית בפועל.)*
+
+## הכנה להצגה ולמסירה
+- [תרשים ארכיטקטורה ומפת רכיבים](docs/ARCHITECTURE.md)
+- [Runbook לדמו של 10–15 דקות, שאלות ותוצרי מסירה](docs/INTERVIEW_RUNBOOK.md)
+- `python demo.py --require-real-llm` מפיק תוצאות ריצה חדשות עם Gemini: `reports/as_built.html`, `runtime/audit.jsonl` ו־`runtime/test_results.xml`. אלה ההוכחות להציג. הקבצים הישנים שנוצרו במצב offline הוסרו מ־`evidence/`.
+- בדיקות ה־pytest אינן דורשות מפתח API ואינן מוכיחות קישוריות ל־API אמיתי. כדי להוכיח זאת, צריך להריץ את הדמו עם מפתח תקף בסביבה שלך.
+- מגבלות: אין SSO או אישור מנהל מאומת, אין חיבור ל־IdP אמיתי ואין הסרת הרשאות אוטומטית בתום התוקף.

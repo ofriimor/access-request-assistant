@@ -107,7 +107,12 @@ def main(argv=None) -> int:
     if args.cmd == "reset":
         reset_runtime(); print("runtime reset."); return 0
 
-    eng = Engine()
+    try:
+        eng = Engine()
+    except ValueError as err:          # e.g. GEMINI_API_KEY not set
+        print(f"\n  ✗ LLM not configured: {err}\n"
+              '    PowerShell: $env:GEMINI_API_KEY = Read-Host "Gemini API key"\n')
+        return 5
     try:
         if args.cmd == "submit":
             show(eng.submit(json.loads(args.file.read_text(encoding="utf-8"))))

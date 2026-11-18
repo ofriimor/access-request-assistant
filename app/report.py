@@ -118,6 +118,7 @@ def generate(engine, out: Path | None = None) -> Path:
         generated_at=datetime.now().strftime("%d.%m.%Y, %H:%M"),
         generated_iso=now_iso(),
         llm=engine.llm.name,
+        llm_model=getattr(engine.llm, "model", None),
         requests=requests,
         intake_rejections=intake_rejections,
         tests=read_junit(engine.runtime_dir / "test_results.xml"),

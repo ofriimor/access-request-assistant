@@ -192,7 +192,7 @@
 
     <ol class="rail" aria-label="הזרימה בפועל">
       <li class="step"><i>1</i><b>Intake</b><span>בדיקת קלט ויצירת מזהה</span></li>
-      <li class="step"><i>2</i><b>Understand</b><span>LLM מחלץ שדות</span></li>
+      <li class="step"><i>2</i><b>Understand</b><span>Gemini מחלץ שדות</span></li>
       <li class="step"><i>3</i><b>Retrieve</b><span>Policy ו־Directory</span></li>
       <li class="step"><i>4</i><b>Plan</b><span>ה־Guard מחליט</span></li>
       <li class="step gate"><i>5</i><b>Approve</b><span>המערכת עוצרת. רק המנהל הישיר מאשר</span></li>
@@ -205,7 +205,7 @@
       <strong>{{ requests|length + intake_rejections|length }}</strong> בקשות,
       <strong>{{ completed }}</strong> הושלמו ואומתו, <strong>{{ stopped }}</strong> נעצרו לפני ביצוע,
       {% if tests %}<strong>{{ tests.passed }} מתוך {{ tests.total }}</strong> בדיקות אוטומטיות עברו,{% endif %}
-      <strong>{{ audit_count }}</strong> אירועים ב־Audit. ספק ה־LLM בריצה: <strong class="en">{{ llm }}</strong>.
+      <strong>{{ audit_count }}</strong> אירועים ב־Audit. ה־LLM בריצה: <strong class="en">{% if llm == "gemini" %}Google Gemini API{% else %}{{ llm }}{% endif %}{% if llm_model %}, {{ llm_model }}{% endif %}</strong>.
     </p>
   </div>
 </header>
@@ -290,14 +290,14 @@
       <p class="intro">שבעת השלבים, הרכיב שמבצע כל אחד מהם והמקורות שהם נוגעים בהם. השלב באדום הוא היחיד שדורש אדם, וה־Tool באדום הוא היחיד שמשנה מצב.</p>
       <svg viewBox="0 0 1000 400" width="100%" role="img" aria-label="Architecture diagram" style="direction:ltr;display:block">
         <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5e6670"/></marker></defs>
-        {% set steps = [("Intake","validate + ID"),("Understand","LLM extract"),("Retrieve","KB + Directory"),("Plan","guard decides"),("Approve","human"),("Execute","grant_access"),("Verify","re-read + report")] %}
+        {% set steps = [("Intake","validate + ID"),("Understand","Gemini extract"),("Retrieve","KB + Directory"),("Plan","guard decides"),("Approve","human"),("Execute","grant_access"),("Verify","re-read + report")] %}
         {% for s in steps %}{% set x = 20 + loop.index0*140 %}{% set gate = loop.index == 5 %}
           <rect x="{{x}}" y="20" width="120" height="58" rx="9" fill="{{ '#c4161c' if gate else '#ffffff' }}" stroke="{{ '#c4161c' if gate else '#1f2328' }}" stroke-width="1.5"/>
           <text x="{{x+60}}" y="45" text-anchor="middle" font-size="14" font-weight="600" fill="{{ '#ffffff' if gate else '#1f2328' }}">{{ s[0] }}</text>
           <text x="{{x+60}}" y="64" text-anchor="middle" font-size="11.5" fill="{{ '#fde2e1' if gate else '#5e6670' }}">{{ s[1] }}</text>
           {% if not loop.last %}<line x1="{{x+121}}" y1="49" x2="{{x+138}}" y2="49" stroke="#5e6670" stroke-width="1.5" marker-end="url(#ar)"/>{% endif %}
         {% endfor %}
-        {% set comps = [(1,"LLM","Claude / OpenAI / Mock",0),(2,"Read tools","search · read_policy",0),(3,"Guard","deterministic rules",0),(4,"Manager","approve + plan_hash",1),(5,"Write tool","grant_access",2),(6,"Read tool","lookup_user",0)] %}
+        {% set comps = [(1,"LLM: Gemini API",llm_model or "gemini-2.5-flash-lite",0),(2,"Read tools","search · read_policy",0),(3,"Guard","deterministic rules",0),(4,"Manager","approve + plan_hash",1),(5,"Write tool","grant_access",2),(6,"Read tool","lookup_user",0)] %}
         {% for c in comps %}{% set x = 20 + c[0]*140 %}
           <line x1="{{x+60}}" y1="78" x2="{{x+60}}" y2="136" stroke="#c9cdd2" stroke-dasharray="4 3"/>
           <rect x="{{x}}" y="136" width="120" height="54" rx="7" fill="{{ '#fbeceb' if c[3]==1 else ('#c4161c' if c[3]==2 else '#f3f4f6') }}" stroke="{{ '#c4161c' if c[3] else '#f3f4f6' }}"/>
@@ -328,7 +328,7 @@
         <thead><tr><th>רכיב</th><th>קובץ</th><th>אחריות</th></tr></thead>
         <tbody>
           <tr><td class="k">Schemas</td><td><code>app/schemas.py</code></td><td>חוזים לקלט, לפלט ה־LLM ולכל Tool. שדה לא מוכר נדחה.</td></tr>
-          <tr><td class="k">LLM</td><td><code>app/llm.py</code></td><td>חילוץ שדות מהטקסט. הטקסט מוגדר כ־Untrusted, והפלט עובר Validation עם Retry אחד.</td></tr>
+          <tr><td class="k">LLM</td><td><code>app/llm.py</code></td><td>חילוץ שדות מהטקסט באמצעות Google Gemini API (<code>{{ llm_model or "gemini-2.5-flash-lite" }}</code>). הטקסט מוגדר כ־Untrusted, הפלט עובר Validation עם Retry אחד, ושגיאות HTTP זמניות מקבלות Retry מוגבל.</td></tr>
           <tr><td class="k">Guard</td><td><code>app/guard.py</code></td><td>החלטה דטרמיניסטית: מותר, חסר מידע או חסום. כולל זיהוי Prompt Injection.</td></tr>
           <tr><td class="k">State machine</td><td><code>app/state.py</code></td><td>סטטוסים ומעברים מותרים בלבד. SQLite, כולל טבלת Idempotency.</td></tr>
           <tr><td class="k">Engine</td><td><code>app/engine.py</code></td><td>מנהל את שבעת השלבים, את שער האישור, את ה־Retry ואת האימות שאחרי הביצוע.</td></tr>
@@ -353,7 +353,7 @@
         <thead><tr><th></th><th>דרישה</th><th>מימוש</th></tr></thead>
         <tbody>
           <tr><td class="num">1</td><td class="k"><span class="mark">✓</span>קלט ו־Validation</td><td>JSON שנבדק מול <code>AccessRequestInput</code>. שגיאה מציינת את השדה, ולא נוצרת רשומה.</td></tr>
-          <tr><td class="num">2</td><td class="k"><span class="mark">✓</span>שימוש ב־LLM</td><td>חילוץ intent, מערכת, רמה, משך, הצדקה ופערים.</td></tr>
+          <tr><td class="num">2</td><td class="k"><span class="mark">✓</span>שימוש ב־LLM</td><td>Google Gemini API (<code>{{ llm_model or "gemini-2.5-flash-lite" }}</code>) מחלץ intent, מערכת, רמה, משך, הצדקה ופערים.</td></tr>
           <tr><td class="num">3</td><td class="k"><span class="mark">✓</span>Knowledge Retrieval</td><td>5 מסמכי Policy, שלוש ההתאמות הטובות עם מזהה וציון.</td></tr>
           <tr><td class="num">4</td><td class="k"><span class="mark">✓</span>שני Tools לפחות</td><td>3 לקריאה, 1 לכתיבה.</td></tr>
           <tr><td class="num">5</td><td class="k"><span class="mark">✓</span>State</td><td>SQLite: סטטוס, היסטוריה, החלטות, תוצאות Tools, אישור ואימות.</td></tr>
@@ -407,6 +407,7 @@
           <tr><td>Plan: בניית תוכנית והחלטה על Tool, אפשר בעזרת LLM</td><td>ההחלטה בקוד דטרמיניסטי (Guard). ה־LLM משמש רק ל־Understand.</td><td>החלטת הרשאה צריכה להיות צפויה, ניתנת לבדיקה וחסינה ל־Prompt Injection.</td></tr>
           <tr><td>Approve: עצירה ואישור אנושי</td><td>האישור נשמר עם <code>plan_hash</code>, ורק המנהל הישיר מורשה.</td><td>מונע מצב שבו מאשרים דבר אחד ומבצעים דבר אחר.</td></tr>
           <tr><td>Intake: יצירת Request ID</td><td>ה־ID נגזר מ־hash של תוכן הבקשה.</td><td>הגשה חוזרת מזוהה אוטומטית כ־Replay.</td></tr>
+          <tr><td>LLM: מקומי או שירות API</td><td>Google Gemini API בלבד, בלי ספק חלופי בזמן ריצה. בבדיקות משמש FakeLLM מבודד.</td><td>חסר מפתח או ש־Gemini לא זמין? המערכת נעצרת בבטחה ולא מציגה Mock כאילו הוא LLM אמיתי.</td></tr>
           <tr><td>Retrieve: ידע מקומי</td><td>TF-IDF במקום Embeddings.</td><td>חמישה מסמכים. שקוף, דטרמיניסטי ובלי תלויות.</td></tr>
           <tr><td>Verify &amp; Report</td><td>הדוח נוצר בפקודה נפרדת ומכסה את כל הריצות.</td><td>מסמך מסירה אחד לכל התרחישים.</td></tr>
           <tr><td>אין</td><td><code>FAILED_SAFE</code> מאפשר להריץ Execute שוב בלי אישור חדש.</td><td>התקלה הייתה בתשתית ולא בתוכנית, וה־Idempotency מונע כפילות.</td></tr>

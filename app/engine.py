@@ -20,7 +20,7 @@ from pydantic import ValidationError
 from . import guard
 from . import schemas as sc
 from .audit import AuditLog, now_iso
-from .llm import SYSTEM_PROMPT, LLMOutputError, build_user_prompt, get_llm, parse_understanding
+from .llm import SYSTEM_PROMPT, LLMOutputError, LLMServiceError, build_user_prompt, get_llm, parse_understanding
 from .state import StateStore, Status, transition
 from .tools import ToolPermanentError, ToolTransientError, Toolbox
 
@@ -163,7 +163,7 @@ class Engine:
                                  "assumptions": [], "risk_level": "high", "duration_days": None}
             transition(state, Status.BLOCKED, str(e))
             self.audit.log(rid, "retrieve", "unknown_user", {"reason": str(e)})
-        except (LLMOutputError, ToolFailed, ToolSchemaError, ToolNotAllowed) as e:
+        except (LLMOutputError, LLMServiceError, ToolFailed, ToolSchemaError, ToolNotAllowed) as e:
             state["error"] = str(e)
             transition(state, Status.FAILED_SAFE, f"stopped before any action: {e}")
             self.audit.log(rid, "submit", "failed_safe", {"error": str(e)})

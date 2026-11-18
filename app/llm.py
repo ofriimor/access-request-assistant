@@ -1,10 +1,8 @@
 """
 LLM layer - used in the "Understand" step: turn free text into structured fields.
 
-Three interchangeable clients, same interface: complete(system_prompt, user_prompt) -> str
-  - AnthropicLLM : real model via the Anthropic API  (ANTHROPIC_API_KEY)
-  - OpenAILLM    : real model via the OpenAI API     (OPENAI_API_KEY)
-  - MockLLM      : deterministic offline stand-in, used by tests and when no key is set
+One production LLM provider: Google Gemini (GEMINI_API_KEY).
+Tests inject an isolated fake client; the application never substitutes a fake for Gemini.
 
 The LLM output is NEVER trusted directly: it is parsed and validated against
 schemas.Understanding. Invalid output -> one retry with the error -> fail safe.
@@ -14,7 +12,10 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
+import random
 import urllib.request
+import urllib.error
 
 from pydantic import ValidationError
 
@@ -50,6 +51,11 @@ class LLMOutputError(Exception):
     pass
 
 
+class LLMServiceError(Exception):
+    """A real model provider could not be reached or returned an invalid response."""
+    pass
+
+
 def parse_understanding(raw: str) -> Understanding:
     """Extract the first JSON object from the model output and validate it."""
     m = re.search(r"\{.*\}", raw, re.DOTALL)
@@ -63,87 +69,71 @@ def parse_understanding(raw: str) -> Understanding:
 
 # ------------------------------------------------------------------ clients
 def _post_json(url: str, headers: dict, body: dict, timeout: int = 60) -> dict:
-    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
-                                 headers={"content-type": "application/json", **headers})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read())
+    """POST JSON with bounded retries for transient provider failures.
+
+    Never persist or expose API keys or raw provider error bodies.
+    """
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        method="POST",
+        headers={"content-type": "application/json", **headers},
+    )
+    retryable = {429, 500, 502, 503, 504}
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return json.loads(response.read())
+        except urllib.error.HTTPError as exc:
+            if exc.code not in retryable or attempt == max_attempts - 1:
+                raise LLMServiceError(f"LLM API HTTP {exc.code}") from None
+            # Honor a small numeric Retry-After, otherwise exponential backoff.
+            retry_after = exc.headers.get("Retry-After", "") if exc.headers else ""
+            delay = min(float(retry_after), 15) if retry_after.isdigit() else min(2 ** (attempt + 1), 15)
+            time.sleep(delay + random.uniform(0, 0.3))
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise LLMServiceError(
+                f"LLM API connection failed ({type(exc).__name__})"
+            ) from None
+        except (UnicodeError, json.JSONDecodeError) as exc:
+            raise LLMServiceError("LLM API returned malformed JSON") from None
 
 
-class AnthropicLLM:
-    name = "anthropic"
+class GeminiLLM:
+    """Google Gemini REST API; no extra Python dependencies required."""
+    name = "gemini"
 
     def __init__(self):
-        self.key = os.environ["ANTHROPIC_API_KEY"]
-        self.model = os.environ.get("LLM_MODEL", "claude-sonnet-5-5")
+        self.key = os.environ["GEMINI_API_KEY"]
+        self.model = os.environ.get("LLM_MODEL", "gemini-2.5-flash-lite").strip()
+        if not self.model or "/" in self.model or ":" in self.model:
+            raise ValueError("LLM_MODEL must be a model ID such as gemini-2.5-flash-lite")
 
     def complete(self, system: str, user: str) -> str:
-        out = _post_json(
-            "https://api.anthropic.com/v1/messages",
-            {"x-api-key": self.key, "anthropic-version": "2023-06-01"},
-            {"model": self.model, "max_tokens": 600, "temperature": 0,
-             "system": system, "messages": [{"role": "user", "content": user}]},
-        )
-        return "".join(b.get("text", "") for b in out["content"])
-
-
-class OpenAILLM:
-    name = "openai"
-
-    def __init__(self):
-        self.key = os.environ["OPENAI_API_KEY"]
-        self.model = os.environ.get("LLM_MODEL", "gpt-5.4-mini")
-
-    def complete(self, system: str, user: str) -> str:
-        out = _post_json(
-            "https://api.openai.com/v1/chat/completions",
-            {"authorization": f"Bearer {self.key}"},
-            {"model": self.model, "temperature": 0,
-             "response_format": {"type": "json_object"},
-             "messages": [{"role": "system", "content": system},
-                          {"role": "user", "content": user}]},
-        )
-        return out["choices"][0]["message"]["content"]
-
-
-class MockLLM:
-    """
-    Deterministic keyword extractor that imitates the LLM's JSON output.
-    It is deliberately naive (it WILL extract "admin" from an injection text),
-    which proves that safety comes from the guard, not from the model.
-    """
-    name = "mock"
-
-    SYSTEMS = [("finance_erp", r"finance|erp|sap|invoice"), ("prod_db", r"production|prod db|prod_db|database"),
-               ("hr_portal", r"\bhr\b|hr portal|payroll"), ("crm", r"\bcrm\b|salesforce")]
-
-    def complete(self, system: str, user: str) -> str:
-        text = re.sub(r"</?request>", "", user).strip()
-        low = text.lower()
-        sys_ = next((s for s, pat in self.SYSTEMS if re.search(pat, low)), None)
-        level = "admin" if "admin" in low else "write" if re.search(r"\bwrite\b|\bedit\b", low) \
-            else "read" if re.search(r"\bread\b|\bview\b", low) else None
-        dur = None
-        if m := re.search(r"(\d+)\s*days?", low):
-            dur = int(m.group(1))
-        elif m := re.search(r"(\d+)\s*months?", low):
-            dur = int(m.group(1)) * 30
-        just = None
-        if m := re.search(r"because (.+?)(?:\.|$)", text, re.IGNORECASE):
-            just = m.group(1).strip()
-        gaps = ["several systems mentioned in one request"] if \
-            sum(bool(re.search(p, low)) for _, p in self.SYSTEMS) > 1 else []
-        intent = "grant_access" if re.search(r"access|grant|permission", low) else "other"
-        return json.dumps({"intent": intent, "system": sys_, "access_level": level,
-                           "duration_days": dur, "justification": just,
-                           "gaps": gaps, "assumptions": []})
+        from urllib.parse import quote
+        url = ("https://generativelanguage.googleapis.com/v1beta/models/"
+               + quote(self.model, safe="") + ":generateContent")
+        out = _post_json(url, {"x-goog-api-key": self.key}, {
+            "systemInstruction": {"parts": [{"text": system}]},
+            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "generationConfig": {"temperature": 0, "responseMimeType": "application/json"},
+        })
+        try:
+            parts = out["candidates"][0]["content"]["parts"]
+            response = "".join(part.get("text", "") for part in parts)
+            if not response:
+                raise ValueError("empty response")
+            return response
+        except (KeyError, IndexError, TypeError, AttributeError, ValueError) as exc:
+            raise LLMServiceError("Gemini API returned no usable response") from exc
 
 
 def get_llm():
-    mode = os.environ.get("LLM_PROVIDER", "auto").lower()
-    if mode == "mock":
-        return MockLLM()
-    if mode in ("anthropic", "auto") and os.environ.get("ANTHROPIC_API_KEY"):
-        return AnthropicLLM()
-    if mode in ("openai", "auto") and os.environ.get("OPENAI_API_KEY"):
-        return OpenAILLM()
-    return MockLLM()
+    """Gemini is the only runtime provider. Never silently fall back."""
+    mode = os.environ.get("LLM_PROVIDER", "gemini").lower().strip()
+    if mode != "gemini":
+        raise ValueError("Only LLM_PROVIDER=gemini is supported")
+    if not os.environ.get("GEMINI_API_KEY"):
+        raise ValueError("GEMINI_API_KEY is required for real Gemini requests")
+    return GeminiLLM()
