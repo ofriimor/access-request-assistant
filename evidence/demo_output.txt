@@ -1,0 +1,164 @@
+
+════════════════════════════════════════════════════════════════════════
+  0. Automated tests
+════════════════════════════════════════════════════════════════════════
+....................                                                     [100%]
+20 passed in 0.20s
+
+LLM provider: mock
+
+════════════════════════════════════════════════════════════════════════
+  1. HAPPY PATH - Noa asks for CRM write access
+════════════════════════════════════════════════════════════════════════
+
+▶ submit  (Intake → Understand → Retrieve → Plan)
+
+  Request : REQ-a830a7758e
+  Status  : AWAITING_APPROVAL
+  Sources : POL-CRM-01 (34.98), POL-FIN-02 (6.91), POL-PROD-03 (4.81)
+
+  ┌─ APPROVAL NEEDED ─────────────────────────────────────────
+  │ Grant WRITE access on crm to Noa Mizrahi (u1002, Sales) for 90 days. Reason: I am taking over the northern region accounts from Avi and need to update deals and contacts
+  │ tool=grant_access  risk=medium  policies=POL-GEN-00, POL-CRM-01
+  │ plan_hash=1bbbdf62987beb10…  approver=u1001
+  └────────────────────────────────────────────────────────────
+
+
+▶ execute BEFORE approval → must be blocked
+  ✗ BLOCKED: cannot execute REQ-a830a7758e: status AWAITING_APPROVAL, no valid approval
+
+▶ approve by Dana (u1001, Noa's manager)
+
+  Request : REQ-a830a7758e
+  Status  : APPROVED
+  Sources : POL-CRM-01 (34.98), POL-FIN-02 (6.91), POL-PROD-03 (4.81)
+  Approval: APPROVED by u1001 covering northern region
+
+
+▶ execute → verify
+
+  Request : REQ-a830a7758e
+  Status  : COMPLETED
+  Sources : POL-CRM-01 (34.98), POL-FIN-02 (6.91), POL-PROD-03 (4.81)
+  Approval: APPROVED by u1001 covering northern region
+  Result  : GRT-a9c80b73 crm/write expires 2027-02-14T19:16:33+00:00
+  Verify  : OK {'grant_exists': True, 'exactly_one_grant': True, 'system_matches': True, 'level_matches': True, 'has_expiry': True}
+
+
+════════════════════════════════════════════════════════════════════════
+  2. MISSING INFORMATION
+════════════════════════════════════════════════════════════════════════
+
+  Request : REQ-c4553d70c1
+  Status  : NEEDS_INFO
+  MISSING : system: which system is access needed for?
+  MISSING : access_level: read or write?
+  MISSING : justification: business reason is mandatory (POL-GEN-00 §6)
+  Sources : POL-GEN-00 (2.1)
+
+
+════════════════════════════════════════════════════════════════════════
+  2b. INVALID INPUT (schema)
+════════════════════════════════════════════════════════════════════════
+  ✗ INPUT REJECTED:
+    - requester_id: Field required
+    - request_text: String should have at least 15 characters
+
+════════════════════════════════════════════════════════════════════════
+  3a. BLOCKED BY POLICY - admin on production DB
+════════════════════════════════════════════════════════════════════════
+
+  Request : REQ-864993b5af
+  Status  : BLOCKED
+  BLOCKED : POL-GEN-00 §1: admin access is never granted by the assistant
+  ASSUME  : no duration requested - using policy default 14 days
+  Sources : POL-PROD-03 (18.39), POL-CRM-01 (5.91), POL-GEN-00 (4.76)
+
+
+════════════════════════════════════════════════════════════════════════
+  3b. BLOCKED - prompt injection in the request text
+════════════════════════════════════════════════════════════════════════
+
+  Request : REQ-9e0109e175
+  Status  : BLOCKED
+  BLOCKED : POL-GEN-00 §7: request text contains instructions to the system (4 suspicious pattern(s)) - escalate to Security
+  BLOCKED : POL-GEN-00 §1: admin access is never granted by the assistant
+  BLOCKED : POL-FIN-02: department 'Marketing' is not allowed (allowed: Finance, Management)
+  MISSING : llm-gap: several systems mentioned in one request
+  ASSUME  : no duration requested - using policy default 30 days
+  Sources : POL-GEN-00 (20.78), POL-CRM-01 (16.98), POL-FIN-02 (5.89)
+
+
+════════════════════════════════════════════════════════════════════════
+  3c. REJECTED BY MANAGER
+════════════════════════════════════════════════════════════════════════
+
+  Request : REQ-b3c3fe7621
+  Status  : AWAITING_APPROVAL
+  Sources : POL-CRM-01 (28.08), POL-PROD-03 (6.51), POL-FIN-02 (4.81)
+
+  ┌─ APPROVAL NEEDED ─────────────────────────────────────────
+  │ Grant WRITE access on crm to Tal Shapira (u1007, Support) for 30 days. Reason: I handle customer escalations and need to update case notes on accounts
+  │ tool=grant_access  risk=medium  policies=POL-GEN-00, POL-CRM-01
+  │ plan_hash=4402b25e3c692dba…  approver=u1012
+  └────────────────────────────────────────────────────────────
+
+
+  Request : REQ-b3c3fe7621
+  Status  : REJECTED
+  Sources : POL-CRM-01 (28.08), POL-PROD-03 (6.51), POL-FIN-02 (4.81)
+  Approval: REJECTED by u1012 read-only is enough for escalations
+
+
+▶ try to execute anyway
+  ✗ BLOCKED: cannot execute REQ-b3c3fe7621: status REJECTED, no valid approval
+
+════════════════════════════════════════════════════════════════════════
+  4. TOOL FAILURE - directory times out
+════════════════════════════════════════════════════════════════════════
+
+▶ execute with simulated timeout (3 attempts, backoff)
+
+  Request : REQ-4bced813a0
+  Status  : FAILED_SAFE
+  Sources : POL-CRM-01 (23.32), POL-HR-04 (4.81), POL-PROD-03 (4.81)
+  Approval: APPROVED by u1001 
+  Error   : grant_access: failed after 3 attempts
+
+
+▶ directory is back → execute again (no new approval needed, idempotent)
+
+  Request : REQ-4bced813a0
+  Status  : COMPLETED
+  Sources : POL-CRM-01 (23.32), POL-HR-04 (4.81), POL-PROD-03 (4.81)
+  Approval: APPROVED by u1001 
+  Result  : GRT-f2c044b0 crm/read expires 2027-01-15T19:16:34+00:00
+  Verify  : OK {'grant_exists': True, 'exactly_one_grant': True, 'system_matches': True, 'level_matches': True, 'has_expiry': True}
+
+
+════════════════════════════════════════════════════════════════════════
+  5. REPLAY / IDEMPOTENCY - same request submitted and executed again
+════════════════════════════════════════════════════════════════════════
+
+  Request : REQ-a830a7758e   (REPLAY - existing record)
+  Status  : COMPLETED
+  Sources : POL-CRM-01 (34.98), POL-FIN-02 (6.91), POL-PROD-03 (4.81)
+  Approval: APPROVED by u1001 covering northern region
+  Result  : GRT-a9c80b73 crm/write expires 2027-02-14T19:16:33+00:00
+  Verify  : OK {'grant_exists': True, 'exactly_one_grant': True, 'system_matches': True, 'level_matches': True, 'has_expiry': True}
+
+
+  Request : REQ-a830a7758e   (REPLAY - existing record)
+  Status  : COMPLETED
+  Sources : POL-CRM-01 (34.98), POL-FIN-02 (6.91), POL-PROD-03 (4.81)
+  Approval: APPROVED by u1001 covering northern region
+  Result  : GRT-a9c80b73 crm/write expires 2027-02-14T19:16:33+00:00
+  Verify  : OK {'grant_exists': True, 'exactly_one_grant': True, 'system_matches': True, 'level_matches': True, 'has_expiry': True}
+
+  Grants for u1002 in directory: 1  (expected 1)
+
+════════════════════════════════════════════════════════════════════════
+  REPORT
+════════════════════════════════════════════════════════════════════════
+  As-Built: /home/claude/access-assistant/reports/as_built.html
+  Audit   : /home/claude/access-assistant/runtime/audit.jsonl

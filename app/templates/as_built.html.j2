@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>As-Built · Access Request Assistant</title>
+<style>
+  :root { --ink:#1d2433; --muted:#5b6475; --line:#d9dee7; --bg:#f7f8fa; --ok:#1f7a4d; --bad:#b42318;
+          --warn:#b54708; --accent:#2c5fd6; }
+  * { box-sizing:border-box; }
+  body { font-family: system-ui, "Segoe UI", Arial, sans-serif; color:var(--ink); background:#fff;
+         margin:0; line-height:1.55; }
+  main { max-width:1100px; margin:0 auto; padding:32px 24px 80px; }
+  h1 { font-size:28px; margin:0 0 4px; }
+  h2 { font-size:20px; margin:40px 0 12px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  code, .ltr { direction:ltr; unicode-bidi:embed; font-family: ui-monospace, Consolas, monospace; font-size:13px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; margin:8px 0; }
+  th, td { border:1px solid var(--line); padding:7px 9px; text-align:right; vertical-align:top; }
+  th { background:var(--bg); font-weight:600; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:10px; font-size:12px; font-weight:600;
+          direction:ltr; }
+  .COMPLETED,.ok { background:#e3f4ea; color:var(--ok); }
+  .BLOCKED,.REJECTED,.INVALID,.VERIFICATION_FAILED,.fail { background:#fde8e7; color:var(--bad); }
+  .NEEDS_INFO,.FAILED_SAFE,.AWAITING_APPROVAL,.APPROVED { background:#fff1e0; color:var(--warn); }
+  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .card { border:1px solid var(--line); border-radius:8px; padding:12px 14px; }
+  .card b { display:block; font-size:24px; }
+  details { border:1px solid var(--line); border-radius:6px; margin:6px 0; padding:6px 10px; }
+  summary { cursor:pointer; font-weight:600; }
+  .ev { font-size:12.5px; direction:ltr; text-align:left; }
+  .ev td { text-align:left; }
+  ul { margin:6px 0; }
+  .note { background:var(--bg); border-right:4px solid var(--accent); padding:10px 14px; border-radius:4px; }
+  svg text { font-family: system-ui, Arial, sans-serif; }
+</style>
+</head>
+<body><main>
+
+<h1>Access Request Assistant · As-Built</h1>
+<p class="sub">מסמך מסירה שנוצר אוטומטית מתוך State, Audit ותוצאות הבדיקות · <span class="ltr">{{ generated_at }}</span> · LLM provider: <span class="ltr">{{ llm }}</span></p>
+
+<div class="cards">
+  <div class="card">בקשות שעובדו<b>{{ requests|length }}</b></div>
+  <div class="card">אירועי Audit<b>{{ audit_count }}</b></div>
+  <div class="card">בדיקות אוטומטיות<b>{% if tests %}{{ tests.passed }}/{{ tests.total }}{% else %}—{% endif %}</b></div>
+  <div class="card">הושלמו ואומתו<b>{{ requests|selectattr("status","equalto","COMPLETED")|list|length }}</b></div>
+</div>
+
+<h2>1. מטרה ו־Scope</h2>
+<p>מערכת שמקבלת בקשת הרשאה בטקסט חופשי, מחלצת ממנה שדות בעזרת LLM, מאתרת את ה־Policy הרלוונטי, בודקת את המשתמש ב־Directory,
+ומכינה תוכנית פעולה. התוכנית <b>נעצרת לאישור של המנהל הישיר</b>. רק אחרי האישור ההרשאה נכתבת ל־Directory, נקראת מחדש לאימות ונרשמת ב־Audit.</p>
+<p class="note"><b>עקרון מנחה:</b> ה־LLM מציע, הקוד מחליט. ה־LLM רק מחלץ שדות מהטקסט. ההחלטה אם מותר נקבעת בקוד דטרמיניסטי (<span class="ltr">guard.py</span>) שקורא את ה־Policy ואת ה־Directory, ולכן גם LLM שהוטעה לא יכול להעניק הרשאה.</p>
+
+<h2>2. ארכיטקטורה וזרימה בפועל</h2>
+<svg viewBox="0 0 1000 430" width="100%" role="img" aria-label="Architecture diagram" style="direction:ltr">
+  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6475"/></marker></defs>
+  {% set steps = [("1. Intake","validate + ID"),("2. Understand","LLM extract"),("3. Retrieve","KB + Directory"),("4. Plan","guard decides"),("5. Approve","HUMAN"),("6. Execute","grant_access"),("7. Verify","re-read + report")] %}
+  {% for s in steps %}{% set x = 20 + loop.index0*140 %}
+    <rect x="{{x}}" y="30" width="120" height="62" rx="8" fill="{{ '#fff1e0' if loop.index==5 else '#eef3fd' }}" stroke="{{ '#b54708' if loop.index==5 else '#2c5fd6' }}" stroke-width="{{ 2.5 if loop.index==5 else 1.5 }}"/>
+    <text x="{{x+60}}" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1d2433">{{ s[0] }}</text>
+    <text x="{{x+60}}" y="76" text-anchor="middle" font-size="11.5" fill="#5b6475">{{ s[1] }}</text>
+    {% if not loop.last %}<line x1="{{x+120}}" y1="61" x2="{{x+138}}" y2="61" stroke="#5b6475" stroke-width="1.5" marker-end="url(#ar)"/>{% endif %}
+  {% endfor %}
+  {% set comps = [(1,"LLM","Claude/OpenAI/Mock","#f3eefc","#6b46c1"),(2,"Tools (read)","search · read_policy","#eef7f1","#1f7a4d"),(3,"Guard","policy + identity rules","#eef3fd","#2c5fd6"),(4,"Manager","approve + plan_hash","#fff1e0","#b54708"),(5,"Tool (write)","grant_access","#fde8e7","#b42318"),(6,"Tool (read)","lookup_user (verify)","#eef7f1","#1f7a4d")] %}
+  {% for c in comps %}{% set x = 20 + c[0]*140 %}
+    <line x1="{{x+60}}" y1="92" x2="{{x+60}}" y2="150" stroke="#9aa3b2" stroke-dasharray="4 3"/>
+    <rect x="{{x}}" y="150" width="120" height="58" rx="6" fill="{{c[3]}}" stroke="{{c[4]}}"/>
+    <text x="{{x+60}}" y="173" text-anchor="middle" font-size="13" font-weight="600" fill="#1d2433">{{c[1]}}</text>
+    <text x="{{x+60}}" y="193" text-anchor="middle" font-size="10.5" fill="#5b6475">{{c[2]}}</text>
+  {% endfor %}
+  <rect x="300" y="250" width="260" height="46" rx="6" fill="#f7f8fa" stroke="#9aa3b2"/>
+  <text x="430" y="270" text-anchor="middle" font-size="13" font-weight="600">Knowledge Base</text>
+  <text x="430" y="287" text-anchor="middle" font-size="11" fill="#5b6475">data/policies/*.md (5 policies)</text>
+  <rect x="600" y="250" width="260" height="46" rx="6" fill="#f7f8fa" stroke="#9aa3b2"/>
+  <text x="730" y="270" text-anchor="middle" font-size="13" font-weight="600">Directory (system state)</text>
+  <text x="730" y="287" text-anchor="middle" font-size="11" fill="#5b6475">runtime/directory.json</text>
+  <line x1="360" y1="208" x2="400" y2="250" stroke="#9aa3b2"/><line x1="780" y1="208" x2="740" y2="250" stroke="#9aa3b2"/>
+  <line x1="920" y1="208" x2="820" y2="250" stroke="#9aa3b2"/><line x1="360" y1="208" x2="650" y2="250" stroke="#9aa3b2" stroke-dasharray="3 3"/>
+  <rect x="20" y="330" width="960" height="40" rx="6" fill="#1d2433"/>
+  <text x="500" y="355" text-anchor="middle" font-size="13" fill="#fff">State Machine + State Store (SQLite) · Idempotency keys · Audit Log (JSONL) — written by every step</text>
+  <rect x="20" y="382" width="960" height="34" rx="6" fill="#eef3fd" stroke="#2c5fd6"/>
+  <text x="500" y="404" text-anchor="middle" font-size="12.5">Stop states: INVALID · NEEDS_INFO · BLOCKED · REJECTED · FAILED_SAFE (retry-able) · VERIFICATION_FAILED</text>
+</svg>
+
+<h2>3. רכיבים</h2>
+<table>
+<tr><th>רכיב</th><th>קובץ</th><th>אחריות</th></tr>
+<tr><td>Schemas</td><td class="ltr">app/schemas.py</td><td>חוזים (Pydantic) לקלט, לפלט ה־LLM, לקלט ולפלט של כל Tool ולתוכנית. שדות לא מוכרים נדחים (<span class="ltr">extra=forbid</span>).</td></tr>
+<tr><td>LLM</td><td class="ltr">app/llm.py</td><td>Understand: חילוץ intent, system, level, duration, justification, gaps. הטקסט מוגדר כ־Untrusted. הפלט עובר Validation, וב־Retry אחד מוחזרת השגיאה למודל.</td></tr>
+<tr><td>Tools</td><td class="ltr">app/tools.py</td><td>Allowlist של 4 Tools: 3 לקריאה ו־1 לכתיבה. חיפוש TF-IDF ב־KB. כתיבה אטומית ל־Directory. Failure injection להדגמה.</td></tr>
+<tr><td>Guard</td><td class="ltr">app/guard.py</td><td>החלטה דטרמיניסטית (ALLOW, NEEDS_INFO או BLOCK) לפי Policy ו־Directory, וזיהוי Prompt Injection.</td></tr>
+<tr><td>State Machine</td><td class="ltr">app/state.py</td><td>סטטוסים ומעברים מותרים בלבד. שמירה ב־SQLite, כולל טבלת Idempotency.</td></tr>
+<tr><td>Engine</td><td class="ltr">app/engine.py</td><td>Orchestration של 7 השלבים, Approval gate, Retry עם backoff, Post-Action Verification.</td></tr>
+<tr><td>Audit</td><td class="ltr">app/audit.py</td><td>יומן Append-only בפורמט JSONL: כל שלב, קריאה ל־Tool, שגיאה, אישור וסטטוס.</td></tr>
+<tr><td>Report / CLI</td><td class="ltr">app/report.py, app/__main__.py</td><td>המסמך הזה וממשק שורת פקודה.</td></tr>
+</table>
+
+<h2>4. Tools</h2>
+<table>
+<tr><th>Tool</th><th>סוג</th><th>Input schema</th><th>בקרות</th></tr>
+<tr><td class="ltr">search_policies</td><td>קריאה</td><td class="ltr">query, top_k(1-5)</td><td>מחזיר מזהה מקור וציון</td></tr>
+<tr><td class="ltr">read_policy</td><td>קריאה</td><td class="ltr">system ∈ {crm, finance_erp, hr_portal, prod_db}</td><td>ערך שאינו ברשימה נדחה</td></tr>
+<tr><td class="ltr">lookup_user</td><td>קריאה</td><td class="ltr">user_id ~ ^u\d{4}$</td><td>גם הפלט עובר Validation (UserRecord)</td></tr>
+<tr><td class="ltr">grant_access</td><td><b>כתיבה</b></td><td class="ltr">request_id, user_id, system, access_level ∈ {read, write}, duration_days(1-180)</td><td>אפשרי רק אחרי Approval עם plan_hash תואם. Idempotency כפול: מפתח ב־DB ו־request_id ב־Tool. <span class="ltr">admin</span> לא ניתן לביטוי בסכמה.</td></tr>
+</table>
+
+<h2>5. עמידה בדרישות</h2>
+<table>
+<tr><th>#</th><th>דרישה</th><th>מימוש</th></tr>
+<tr><td>1</td><td>קלט ו־Validation</td><td>JSON ו־<span class="ltr">AccessRequestInput</span>. שגיאה מפרטת את השדה החסר ולא נוצרת רשומה.</td></tr>
+<tr><td>2</td><td>שימוש ב־LLM</td><td>Extraction של שדות ופערים בשלב Understand.</td></tr>
+<tr><td>3</td><td>Knowledge Retrieval</td><td>5 מסמכי Policy, חיפוש TF-IDF, top-3 עם מזהה וציון.</td></tr>
+<tr><td>4</td><td>שני Tools לפחות</td><td>3 Tools לקריאה ו־1 לכתיבה.</td></tr>
+<tr><td>5</td><td>State</td><td>SQLite: סטטוס, היסטוריה, החלטות, תוצאות Tools, Approval ו־Verification.</td></tr>
+<tr><td>6</td><td>Human-in-the-loop</td><td>רק המנהל הישיר יכול לאשר. האישור קשור ל־plan_hash.</td></tr>
+<tr><td>7</td><td>Schemas</td><td>Validation לפני ואחרי כל Tool. שגיאת Schema מובילה ל־FAILED_SAFE.</td></tr>
+<tr><td>8</td><td>Idempotency</td><td>request_id נגזר מהתוכן, מפתח פעולה (PK) ב־DB, ו־Tool שמחזיר Grant קיים.</td></tr>
+<tr><td>9</td><td>Error Handling</td><td>עד 3 Retries עם backoff על שגיאה זמנית, ואז FAILED_SAFE עם האפשרות להריץ שוב. שגיאה קבועה או פלט פגום עוצרים מיד.</td></tr>
+<tr><td>10</td><td>Post-Action Verification</td><td>קריאה מחדש מה־Directory ו־5 בדיקות.</td></tr>
+<tr><td>11</td><td>Audit</td><td><span class="ltr">runtime/audit.jsonl</span></td></tr>
+<tr><td>12</td><td>As-Built HTML</td><td>המסמך הזה, שנוצר מהנתונים.</td></tr>
+</table>
+
+<h2>6. תוצאות הרצת התרחישים</h2>
+<table>
+<tr><th>Ticket</th><th>Request ID</th><th>בקשה</th><th>סטטוס</th><th>החלטה / סיבה</th><th>Approval</th><th>תוצאה</th></tr>
+{% for r in requests %}
+<tr>
+  <td class="ltr">{{ r.input.external_ref or "" }}</td>
+  <td class="ltr">{{ r.request_id }}</td>
+  <td class="ltr" style="max-width:260px">{{ r.input.request_text[:110] }}{% if r.input.request_text|length > 110 %}…{% endif %}</td>
+  <td><span class="pill {{ r.status }}">{{ r.status }}</span></td>
+  <td class="ltr" style="font-size:12.5px">
+    {% if r.decision %}{{ r.decision.verdict }}
+      {% for x in r.decision.block_reasons %}<br>• {{ x }}{% endfor %}
+      {% for x in r.decision.missing %}<br>• {{ x }}{% endfor %}
+    {% endif %}{% if r.error %}<br>⚠ {{ r.error }}{% endif %}
+  </td>
+  <td class="ltr">{% if r.approval %}{{ "approved" if r.approval.approved else "rejected" }} by {{ r.approval.approver_id }}{% else %}—{% endif %}</td>
+  <td class="ltr">{% if r.result %}{{ r.result.grant_id }}<br>{{ r.result.system }}/{{ r.result.access_level }}{% endif %}
+    {% if r.verification %}<br><span class="pill {{ 'ok' if r.verification.ok else 'fail' }}">verify {{ "OK" if r.verification.ok else "FAIL" }}</span>{% endif %}</td>
+</tr>
+{% endfor %}
+{% for e in intake_rejections %}
+<tr><td class="ltr">{{ e.data.input.external_ref if e.data.input else "" }}</td><td>—</td><td class="ltr">{{ (e.data.input.request_text or "")[:110] if e.data.input else "" }}</td>
+<td><span class="pill INVALID">INVALID</span></td><td class="ltr" style="font-size:12.5px">{% for x in e.data.errors %}• {{ x }}<br>{% endfor %}</td><td>—</td><td>לא נוצרה רשומה</td></tr>
+{% endfor %}
+</table>
+
+<h2>7. Audit Trail לכל בקשה</h2>
+{% for r in requests %}
+<details><summary><span class="ltr">{{ r.request_id }} · {{ r.input.external_ref }}</span> · <span class="pill {{ r.status }}">{{ r.status }}</span> · {{ audits[r.request_id]|length }} אירועים</summary>
+<table class="ev"><tr><th>time</th><th>step</th><th>event</th><th>data</th></tr>
+{% for e in audits[r.request_id] %}
+<tr><td>{{ e.ts[11:19] }}</td><td>{{ e.step }}</td><td><b>{{ e.event }}</b></td><td style="word-break:break-word">{{ e.data|tojson|truncate(420) }}</td></tr>
+{% endfor %}</table></details>
+{% endfor %}
+
+<h2>8. Test Evidence</h2>
+{% if tests %}
+<p>{{ tests.passed }} מתוך {{ tests.total }} בדיקות עברו (<span class="ltr">python -m pytest</span>).</p>
+<table class="ev"><tr><th>test</th><th>result</th><th>time (s)</th></tr>
+{% for c in tests.cases %}<tr><td>{{ c.name }}</td><td><span class="pill {{ 'ok' if c.ok else 'fail' }}">{{ "PASS" if c.ok else "FAIL" }}</span></td><td>{{ c.time }}</td></tr>{% endfor %}
+</table>
+{% else %}<p>לא נמצא קובץ תוצאות. הריצו <span class="ltr">python demo.py</span> או <span class="ltr">pytest --junitxml=runtime/test_results.xml</span>.</p>{% endif %}
+
+<h2>9. Design vs. As-Built</h2>
+<table>
+<tr><th>Design</th><th>As-Built</th><th>סיבה</th></tr>
+<tr><td>Plan: בניית תוכנית והחלטה על Tool (אפשר באמצעות LLM)</td><td>ההחלטה מתקבלת בקוד דטרמיניסטי (Guard), וה־LLM משמש רק ל־Understand.</td><td>החלטת הרשאה חייבת להיות צפויה, ניתנת לבדיקה ולא חשופה ל־Prompt Injection.</td></tr>
+<tr><td>Approve: עצירה ואישור אנושי</td><td>האישור נשמר יחד עם <span class="ltr">plan_hash</span>. שינוי בתוכנית אחרי האישור חוסם את Execute. רק המנהל הישיר מורשה לאשר.</td><td>מונע מצב שבו מאשרים דבר אחד ומבצעים דבר אחר.</td></tr>
+<tr><td>Intake: יצירת Request ID</td><td>ה־ID נגזר מ־hash של תוכן הבקשה המנורמל.</td><td>הגשה חוזרת מזוהה אוטומטית כ־Replay.</td></tr>
+<tr><td>Retrieve: ידע מקומי</td><td>חיפוש TF-IDF במקום Embeddings או Vector DB.</td><td>5 מסמכים. שקוף, דטרמיניסטי ובלי תלויות.</td></tr>
+<tr><td>Verify &amp; Report</td><td>הדוח נוצר בפקודה נפרדת (<span class="ltr">report</span>) ומכסה את כל הריצות.</td><td>מסמך מסירה אחד לכל התרחישים.</td></tr>
+<tr><td>—</td><td>סטטוס <span class="ltr">FAILED_SAFE</span> מאפשר להריץ Execute שוב בלי אישור חדש.</td><td>התקלה הייתה בתשתית ולא בתוכנית, וה־Idempotency מגן מפני כפילות.</td></tr>
+</table>
+
+<h2>10. Runbook קצר</h2>
+<table>
+<tr><th>מצב</th><th>מה עושים</th></tr>
+<tr><td><span class="pill NEEDS_INFO">NEEDS_INFO</span></td><td>לפנות למבקש עם רשימת השדות החסרים ולהגיש בקשה חדשה ומלאה.</td></tr>
+<tr><td><span class="pill BLOCKED">BLOCKED</span></td><td>לא מבצעים. הסיבה וסעיף ה־Policy מופיעים בדוח. בקשות Admin ו־Injection מעבירים ל־Security.</td></tr>
+<tr><td><span class="pill FAILED_SAFE">FAILED_SAFE</span></td><td>לבדוק ב־Audit (<span class="ltr">python -m app audit &lt;id&gt;</span>) מה נכשל. אחרי תיקון התקלה מריצים <span class="ltr">python -m app execute &lt;id&gt;</span>. אין סכנת כפילות.</td></tr>
+<tr><td><span class="pill VERIFICATION_FAILED">VERIFICATION_FAILED</span></td><td>הפעולה דווחה כמוצלחת אבל לא נמצאה ב־Directory. לבדוק ידנית ב־Directory ולא להריץ שוב לפני הבדיקה.</td></tr>
+<tr><td>איפוס סביבת דמו</td><td class="ltr">python -m app reset</td></tr>
+</table>
+
+<h2>11. מגבלות ידועות</h2>
+<ul>
+  <li>ה־Directory וה־KB הם קבצים מקומיים מדומים. במערכת אמיתית הם יוחלפו ב־API של IdP (למשל Entra ID או Okta) ושל ITSM.</li>
+  <li>זיהוי Prompt Injection מבוסס על דפוסים, ולכן אינו מלא. ההגנה העיקרית היא שה־LLM לא מחליט, וגם ערך admin נחסם ב־Guard ובסכמה.</li>
+  <li>זהות המאשר נמסרת כפרמטר ב־CLI ואין אימות זהות (SSO). במערכת אמיתית האישור יגיע מ־Teams, Slack או ServiceNow עם זהות מאומתת.</li>
+  <li>אין תפוגה אוטומטית של הרשאות. התאריך <span class="ltr">expires_at</span> נשמר, אבל לא מומש job שמסיר הרשאות שפג תוקפן.</li>
+  <li>עיבוד סינכרוני ומשתמש יחיד. SQLite מתאים לדמו בלבד.</li>
+</ul>
+
+</main></body></html>
