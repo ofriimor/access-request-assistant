@@ -54,6 +54,10 @@ class ToolFailed(Exception):
     pass
 
 
+class UnknownUser(Exception):
+    """A user id in the request does not exist in the directory - a business stop, not an outage."""
+
+
 # ------------------------------------------------------------- helpers
 def canonical(obj) -> str:
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), default=str)
@@ -123,7 +127,7 @@ class Engine:
                 self.audit.log(rid, step, "tool_error", {"tool": name, "attempt": attempt,
                                                          "error": f"{kind}: {str(e)[:300]}",
                                                          "retryable": False})
-                raise ToolFailed(f"{name}: {kind}") from e
+                raise ToolFailed(f"{name}: {kind}: {str(e)[:200]}") from e
         raise ToolFailed(f"{name}: failed after {self.MAX_RETRIES} attempts")
 
     # ================================================================ 1-4 submit
@@ -154,6 +158,11 @@ class Engine:
             self._understand(state)
             self._retrieve(state)
             self._plan(state)
+        except UnknownUser as e:
+            state["decision"] = {"verdict": "BLOCK", "block_reasons": [str(e)], "missing": [],
+                                 "assumptions": [], "risk_level": "high", "duration_days": None}
+            transition(state, Status.BLOCKED, str(e))
+            self.audit.log(rid, "retrieve", "unknown_user", {"reason": str(e)})
         except (LLMOutputError, ToolFailed, ToolSchemaError, ToolNotAllowed) as e:
             state["error"] = str(e)
             transition(state, Status.FAILED_SAFE, f"stopped before any action: {e}")
@@ -195,9 +204,9 @@ class Engine:
         hits = self.call_tool(rid, "search_policies", {"query": query, "top_k": 3}, "retrieve")
         state["knowledge"] = [h.model_dump() for h in hits]
 
-        target = self.call_tool(rid, "lookup_user", {"user_id": inp["target_user_id"]}, "retrieve")
+        target = self._lookup_known_user(rid, inp["target_user_id"], "target user")
         requester = target if inp["requester_id"] == inp["target_user_id"] else \
-            self.call_tool(rid, "lookup_user", {"user_id": inp["requester_id"]}, "retrieve")
+            self._lookup_known_user(rid, inp["requester_id"], "requester")
         state["target_user"] = target.model_dump()
         state["requester"] = requester.model_dump()
         state["policy"] = None
@@ -206,6 +215,14 @@ class Engine:
                                              "retrieve").model_dump(exclude={"text"})
         transition(state, Status.RETRIEVED)
         self.store.save(state)
+
+    def _lookup_known_user(self, rid: str, user_id: str, role: str) -> sc.UserRecord:
+        try:
+            return self.call_tool(rid, "lookup_user", {"user_id": user_id}, "retrieve")
+        except ToolFailed as e:
+            if isinstance(e.__cause__, ToolPermanentError):
+                raise UnknownUser(f"{role} {user_id} does not exist in the directory") from e
+            raise
 
     # ---- 4. Plan (guard decides, then a plan is built)
     def _plan(self, state: dict) -> None:

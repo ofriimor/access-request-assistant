@@ -204,3 +204,12 @@ def test_department_claim_in_text_is_ignored(engine):
     assert state["status"] == "BLOCKED"
     assert state["target_user"]["department"] == "Marketing"
     assert any("Marketing" in r for r in state["decision"]["block_reasons"])
+
+
+def test_unknown_user_is_blocked_with_clear_reason(engine):
+    state = engine.submit({"requester_id": "u1012", "target_user_id": "u2000",
+                           "request_text": "Please give Hila read access to the production database "
+                                           "because she joins engineering."})
+    assert state["status"] == "BLOCKED"
+    assert "u2000 does not exist" in state["decision"]["block_reasons"][0]
+    assert "plan" not in state
