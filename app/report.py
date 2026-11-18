@@ -39,7 +39,7 @@ def generate(engine, out: Path | None = None) -> Path:
     import base64
     if (assets / "logo-bynet.png").exists():      # main project logo (PNG) wins if present
         data = base64.b64encode((assets / "logo-bynet.png").read_bytes()).decode()
-        logo = f'<img src="data:image/png;base64,{data}" alt="Access Request Assistant" style="height:72px">'
+        logo = f'<img src="data:image/png;base64,{data}" alt="Access Request Assistant" style="height:84px">'
     elif (assets / "logo.svg").exists():
         logo = (assets / "logo.svg").read_text(encoding="utf-8")
     else:

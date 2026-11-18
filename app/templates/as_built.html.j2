@@ -4,44 +4,60 @@
 <meta charset="utf-8">
 <title>As-Built · Access Request Assistant</title>
 <style>
-  :root { --ink:#1d2433; --muted:#5b6475; --line:#d9dee7; --bg:#f7f8fa; --ok:#1f7a4d; --bad:#b42318;
-          --warn:#b54708; --accent:#2c5fd6; }
+  :root { --red:#c4161c; --red-dark:#9b1016; --red-soft:#fdeeee; --ink:#23272b; --charcoal:#2f3439;
+          --muted:#6b7177; --line:#e2e4e7; --bg:#f5f6f7; --ok:#1f7a4d; --bad:#b42318; --warn:#b54708; }
   * { box-sizing:border-box; }
-  body { font-family: system-ui, "Segoe UI", Arial, sans-serif; color:var(--ink); background:#fff;
-         margin:0; line-height:1.55; }
-  main { max-width:1100px; margin:0 auto; padding:32px 24px 80px; }
-  h1 { font-size:28px; margin:0 0 4px; }
-  h2 { font-size:20px; margin:40px 0 12px; padding-bottom:6px; border-bottom:2px solid var(--line); }
-  .sub { color:var(--muted); margin:0 0 20px; }
+  body { font-family: "Segoe UI", Arial, "Noto Sans Hebrew", sans-serif; color:var(--ink); background:var(--bg);
+         margin:0; line-height:1.6; }
+  .topbar { height:6px; background:linear-gradient(90deg, var(--red-dark), var(--red) 60%, #e0464b); }
+  .hero { background:#fff; border-bottom:1px solid var(--line); }
+  .hero-inner { max-width:1100px; margin:0 auto; padding:22px 24px 26px; }
+  main { max-width:1100px; margin:0 auto; padding:8px 24px 70px; }
+  h1 { font-size:30px; margin:18px 0 4px; color:var(--charcoal); letter-spacing:-.3px; }
+  h1 .accent { color:var(--red); }
+  h2 { font-size:20px; margin:34px 0 14px; color:var(--charcoal); display:flex; align-items:center; gap:10px; }
+  h2::before { content:""; width:5px; height:22px; background:var(--red); border-radius:3px; }
+  section.card, .panel { background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px 22px;
+          box-shadow:0 4px 16px rgba(35,39,43,.05); }
+  .sub { color:var(--muted); margin:0; }
   code, .ltr { direction:ltr; unicode-bidi:embed; font-family: ui-monospace, Consolas, monospace; font-size:13px; }
-  table { width:100%; border-collapse:collapse; font-size:14px; margin:8px 0; }
-  th, td { border:1px solid var(--line); padding:7px 9px; text-align:right; vertical-align:top; }
-  th { background:var(--bg); font-weight:600; }
-  .pill { display:inline-block; padding:1px 8px; border-radius:10px; font-size:12px; font-weight:600;
-          direction:ltr; }
+  table { width:100%; border-collapse:collapse; font-size:14px; margin:8px 0; background:#fff; border-radius:10px; overflow:hidden;
+          box-shadow:0 0 0 1px var(--line); }
+  th, td { border-bottom:1px solid var(--line); padding:9px 11px; text-align:right; vertical-align:top; }
+  th { background:var(--charcoal); color:#fff; font-weight:600; border-bottom:3px solid var(--red); }
+  tr:nth-child(even) td { background:#fafafa; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:10px; font-size:12px; font-weight:700; direction:ltr; }
   .COMPLETED,.ok { background:#e3f4ea; color:var(--ok); }
-  .BLOCKED,.REJECTED,.INVALID,.VERIFICATION_FAILED,.fail { background:#fde8e7; color:var(--bad); }
+  .BLOCKED,.REJECTED,.INVALID,.VERIFICATION_FAILED,.fail { background:var(--red-soft); color:var(--red-dark); }
   .NEEDS_INFO,.FAILED_SAFE,.AWAITING_APPROVAL,.APPROVED { background:#fff1e0; color:var(--warn); }
-  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-  .card { border:1px solid var(--line); border-radius:8px; padding:12px 14px; }
-  .card b { display:block; font-size:24px; }
-  details { border:1px solid var(--line); border-radius:6px; margin:6px 0; padding:6px 10px; }
-  summary { cursor:pointer; font-weight:600; }
+  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:18px; }
+  .card { background:#fff; border:1px solid var(--line); border-top:4px solid var(--red); border-radius:10px;
+          padding:12px 16px; color:var(--muted); font-size:14px; box-shadow:0 4px 16px rgba(35,39,43,.05); }
+  .card b { display:block; font-size:28px; color:var(--charcoal); }
+  details { background:#fff; border:1px solid var(--line); border-radius:8px; margin:8px 0; padding:8px 12px; }
+  summary { cursor:pointer; font-weight:600; color:var(--charcoal); }
+  details[open] summary { color:var(--red); }
   .ev { font-size:12.5px; direction:ltr; text-align:left; }
-  .ev td { text-align:left; }
+  .ev td, .ev th { text-align:left; }
+  td.ltr { text-align:left; }
   ul { margin:6px 0; }
-  .note { background:var(--bg); border-right:4px solid var(--accent); padding:10px 14px; border-radius:4px; }
-  svg text { font-family: system-ui, Arial, sans-serif; }
+  .note { background:#fff; border:1px solid var(--line); border-right:5px solid var(--red); padding:12px 16px; border-radius:8px; }
+  .footer { text-align:center; color:var(--muted); font-size:12.5px; margin-top:40px; padding-top:16px; border-top:1px solid var(--line); }
+  svg text { font-family: "Segoe UI", Arial, sans-serif; }
+  @media print { body { background:#fff; } table, .card, details { box-shadow:none; } }
 </style>
 </head>
-<body><main>
-
-<div style="display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:10px;direction:ltr">
-  <div style="max-width:470px;width:100%">{{ logo_svg|safe }}</div>
-  {% if client_logo %}<div style="text-align:center;color:var(--muted);font-size:12px">Prepared for<br><img src="{{ client_logo }}" alt="client logo" style="height:40px;margin-top:4px"></div>{% endif %}
-</div>
-<h1>As-Built · מסמך מסירה</h1>
-<p class="sub">מסמך מסירה שנוצר אוטומטית מתוך State, Audit ותוצאות הבדיקות · <span class="ltr">{{ generated_at }}</span> · LLM provider: <span class="ltr">{{ llm }}</span></p>
+<body>
+<div class="topbar"></div>
+<div class="hero"><div class="hero-inner">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;direction:ltr">
+    <div>{{ logo_svg|safe }}</div>
+    {% if client_logo %}<div style="text-align:center;color:var(--muted);font-size:12px">Prepared for<br><img src="{{ client_logo }}" alt="client logo" style="height:40px;margin-top:4px"></div>{% endif %}
+  </div>
+  <h1>As-Built <span class="accent">·</span> מסמך מסירה</h1>
+  <p class="sub">מסמך מסירה שנוצר אוטומטית מתוך State, Audit ותוצאות הבדיקות · <span class="ltr">{{ generated_at }}</span> · LLM provider: <span class="ltr">{{ llm }}</span></p>
+</div></div>
+<main>
 
 <div class="cards">
   <div class="card">בקשות שעובדו<b>{{ requests|length }}</b></div>
@@ -57,20 +73,20 @@
 
 <h2>2. ארכיטקטורה וזרימה בפועל</h2>
 <svg viewBox="0 0 1000 430" width="100%" role="img" aria-label="Architecture diagram" style="direction:ltr">
-  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6475"/></marker></defs>
+  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#6b7177"/></marker></defs>
   {% set steps = [("1. Intake","validate + ID"),("2. Understand","LLM extract"),("3. Retrieve","KB + Directory"),("4. Plan","guard decides"),("5. Approve","HUMAN"),("6. Execute","grant_access"),("7. Verify","re-read + report")] %}
   {% for s in steps %}{% set x = 20 + loop.index0*140 %}
-    <rect x="{{x}}" y="30" width="120" height="62" rx="8" fill="{{ '#fff1e0' if loop.index==5 else '#eef3fd' }}" stroke="{{ '#b54708' if loop.index==5 else '#2c5fd6' }}" stroke-width="{{ 2.5 if loop.index==5 else 1.5 }}"/>
-    <text x="{{x+60}}" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1d2433">{{ s[0] }}</text>
+    <rect x="{{x}}" y="30" width="120" height="62" rx="8" fill="{{ '#fdeeee' if loop.index==5 else '#ffffff' }}" stroke="{{ '#c4161c' if loop.index==5 else '#2f3439' }}" stroke-width="{{ 2.5 if loop.index==5 else 1.5 }}"/>
+    <text x="{{x+60}}" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="{{ '#9b1016' if loop.index==5 else '#23272b' }}">{{ s[0] }}</text>
     <text x="{{x+60}}" y="76" text-anchor="middle" font-size="11.5" fill="#5b6475">{{ s[1] }}</text>
     {% if not loop.last %}<line x1="{{x+120}}" y1="61" x2="{{x+138}}" y2="61" stroke="#5b6475" stroke-width="1.5" marker-end="url(#ar)"/>{% endif %}
   {% endfor %}
-  {% set comps = [(1,"LLM","Claude/OpenAI/Mock","#f3eefc","#6b46c1"),(2,"Tools (read)","search · read_policy","#eef7f1","#1f7a4d"),(3,"Guard","policy + identity rules","#eef3fd","#2c5fd6"),(4,"Manager","approve + plan_hash","#fff1e0","#b54708"),(5,"Tool (write)","grant_access","#fde8e7","#b42318"),(6,"Tool (read)","lookup_user (verify)","#eef7f1","#1f7a4d")] %}
+  {% set comps = [(1,"LLM","Claude/OpenAI/Mock","#f5f6f7","#6b7177"),(2,"Tools (read)","search · read_policy","#f5f6f7","#6b7177"),(3,"Guard","policy + identity rules","#2f3439","#2f3439"),(4,"Manager","approve + plan_hash","#fdeeee","#c4161c"),(5,"Tool (write)","grant_access","#c4161c","#c4161c"),(6,"Tool (read)","lookup_user (verify)","#f5f6f7","#6b7177")] %}
   {% for c in comps %}{% set x = 20 + c[0]*140 %}
     <line x1="{{x+60}}" y1="92" x2="{{x+60}}" y2="150" stroke="#9aa3b2" stroke-dasharray="4 3"/>
     <rect x="{{x}}" y="150" width="120" height="58" rx="6" fill="{{c[3]}}" stroke="{{c[4]}}"/>
-    <text x="{{x+60}}" y="173" text-anchor="middle" font-size="13" font-weight="600" fill="#1d2433">{{c[1]}}</text>
-    <text x="{{x+60}}" y="193" text-anchor="middle" font-size="10.5" fill="#5b6475">{{c[2]}}</text>
+    <text x="{{x+60}}" y="173" text-anchor="middle" font-size="13" font-weight="600" fill="{{ '#ffffff' if c[3] in ('#2f3439','#c4161c') else '#23272b' }}">{{c[1]}}</text>
+    <text x="{{x+60}}" y="193" text-anchor="middle" font-size="10.5" fill="{{ '#f1d0d1' if c[3] in ('#2f3439','#c4161c') else '#6b7177' }}">{{c[2]}}</text>
   {% endfor %}
   <rect x="300" y="250" width="260" height="46" rx="6" fill="#f7f8fa" stroke="#9aa3b2"/>
   <text x="430" y="270" text-anchor="middle" font-size="13" font-weight="600">Knowledge Base</text>
@@ -80,9 +96,9 @@
   <text x="730" y="287" text-anchor="middle" font-size="11" fill="#5b6475">runtime/directory.json</text>
   <line x1="360" y1="208" x2="400" y2="250" stroke="#9aa3b2"/><line x1="780" y1="208" x2="740" y2="250" stroke="#9aa3b2"/>
   <line x1="920" y1="208" x2="820" y2="250" stroke="#9aa3b2"/><line x1="360" y1="208" x2="650" y2="250" stroke="#9aa3b2" stroke-dasharray="3 3"/>
-  <rect x="20" y="330" width="960" height="40" rx="6" fill="#1d2433"/>
+  <rect x="20" y="330" width="960" height="40" rx="6" fill="#2f3439"/>
   <text x="500" y="355" text-anchor="middle" font-size="13" fill="#fff">State Machine + State Store (SQLite) · Idempotency keys · Audit Log (JSONL) — written by every step</text>
-  <rect x="20" y="382" width="960" height="34" rx="6" fill="#eef3fd" stroke="#2c5fd6"/>
+  <rect x="20" y="382" width="960" height="34" rx="6" fill="#fdeeee" stroke="#c4161c"/>
   <text x="500" y="404" text-anchor="middle" font-size="12.5">Stop states: INVALID · NEEDS_INFO · BLOCKED · REJECTED · FAILED_SAFE (retry-able) · VERIFICATION_FAILED</text>
 </svg>
 
@@ -198,4 +214,5 @@
   <li>עיבוד סינכרוני ומשתמש יחיד. SQLite מתאים לדמו בלבד.</li>
 </ul>
 
+<div class="footer">Access Request Assistant · AI Implementer Hands-on Assignment · Prepared for Bynet AI Business Unit</div>
 </main></body></html>
