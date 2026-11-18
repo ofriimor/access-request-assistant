@@ -4,7 +4,7 @@
 
 1. Install: `python -m pip install -r requirements.txt`.
 2. Set a **real** provider in the terminal (do not commit credentials):
-   - PowerShell: `$env:GEMINI_API_KEY = Read-Host "Gemini API key"; $env:LLM_PROVIDER="gemini"; $env:LLM_MODEL="gemini-2.5-flash-lite"`
+   - Once: `copy .env.example .env`, then put your key in `.env` (it is git-ignored and loaded automatically).
    - `gemini-2.5-flash-lite` is the model used in this project. API quotas/costs apply.
 3. Check network and API access by running the interactive CLI once, or the full demo with `--require-real-llm`. The test suite uses an isolated FakeLLM and **does not** prove a real API call.
 4. Run: `python demo.py --require-real-llm > evidence/live_demo_output.txt` (PowerShell redirection may use its own encoding). This resets local runtime. Confirm it prints `LLM provider: gemini`.

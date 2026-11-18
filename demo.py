@@ -42,6 +42,8 @@ def load(name: str) -> dict:
 
 def main() -> None:
     global PAUSE
+    from app.config import load_env
+    load_env()   # GEMINI_API_KEY etc. from .env (never committed)
     ap = argparse.ArgumentParser()
     ap.add_argument("--pause", action="store_true")
     ap.add_argument("--skip-tests", action="store_true")
