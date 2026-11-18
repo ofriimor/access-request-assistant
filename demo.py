@@ -45,13 +45,19 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--pause", action="store_true")
     ap.add_argument("--skip-tests", action="store_true")
-    PAUSE = ap.parse_args().pause or False
+    ap.add_argument("--require-real-llm", action="store_true",
+                    help="Require the real Gemini provider (always enforced)")
+    args = ap.parse_args()
+    PAUSE = args.pause
 
+    # Validate provider BEFORE reset so a missing API key cannot destroy evidence.
+    from app.llm import get_llm
+    provider = get_llm()
     reset_runtime()
-    if not ap.parse_args().skip_tests:
+    if not args.skip_tests:
         title("0. Automated tests")
         subprocess.run([sys.executable, "-m", "pytest", "-q",
-                        f"--junitxml={PROJECT_ROOT / 'runtime' / 'test_results.xml'}"], cwd=PROJECT_ROOT)
+                        f"--junitxml={PROJECT_ROOT / 'runtime' / 'test_results.xml'}"], cwd=PROJECT_ROOT, check=True)
 
     eng = Engine()
     print(f"\nLLM provider: {eng.llm.name}")
@@ -60,6 +66,9 @@ def main() -> None:
     title("1. HAPPY PATH - Noa asks for CRM write access")
     step("submit  (Intake → Understand → Retrieve → Plan)")
     s = eng.submit(load("01_happy_path.json")); show(s)
+    if s["status"] == "FAILED_SAFE":
+        print("  LLM unavailable; demo stopped safely before approval.")
+        return
     rid = s["request_id"]
     step("execute BEFORE approval → must be blocked")
     try:

@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from app.engine import Engine
-from app.llm import MockLLM
+from tests.fake_llm import FakeLLM
 
 DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -16,7 +16,7 @@ def load_request(name: str) -> dict:
 @pytest.fixture
 def engine(tmp_path):
     """A fresh, isolated engine per test: its own directory copy, DB and audit log."""
-    eng = Engine(runtime_dir=tmp_path, llm=MockLLM(), sleep=lambda s: None)
+    eng = Engine(runtime_dir=tmp_path, llm=FakeLLM(), sleep=lambda s: None)
     yield eng
     eng.store.close()
 
