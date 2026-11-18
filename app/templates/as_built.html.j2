@@ -2,217 +2,445 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>As-Built · Access Request Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { --red:#c4161c; --red-dark:#9b1016; --red-soft:#fdeeee; --ink:#23272b; --charcoal:#2f3439;
-          --muted:#6b7177; --line:#e2e4e7; --bg:#f5f6f7; --ok:#1f7a4d; --bad:#b42318; --warn:#b54708; }
-  * { box-sizing:border-box; }
-  body { font-family: "Segoe UI", Arial, "Noto Sans Hebrew", sans-serif; color:var(--ink); background:var(--bg);
-         margin:0; line-height:1.6; }
-  .topbar { height:6px; background:linear-gradient(90deg, var(--red-dark), var(--red) 60%, #e0464b); }
-  .hero { background:#fff; border-bottom:1px solid var(--line); }
-  .hero-inner { max-width:1100px; margin:0 auto; padding:22px 24px 26px; }
-  main { max-width:1100px; margin:0 auto; padding:8px 24px 70px; }
-  h1 { font-size:30px; margin:18px 0 4px; color:var(--charcoal); letter-spacing:-.3px; }
-  h1 .accent { color:var(--red); }
-  h2 { font-size:20px; margin:34px 0 14px; color:var(--charcoal); display:flex; align-items:center; gap:10px; }
-  h2::before { content:""; width:5px; height:22px; background:var(--red); border-radius:3px; }
-  section.card, .panel { background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px 22px;
-          box-shadow:0 4px 16px rgba(35,39,43,.05); }
-  .sub { color:var(--muted); margin:0; }
-  code, .ltr { direction:ltr; unicode-bidi:embed; font-family: ui-monospace, Consolas, monospace; font-size:13px; }
-  table { width:100%; border-collapse:collapse; font-size:14px; margin:8px 0; background:#fff; border-radius:10px; overflow:hidden;
-          box-shadow:0 0 0 1px var(--line); }
-  th, td { border-bottom:1px solid var(--line); padding:9px 11px; text-align:right; vertical-align:top; }
-  th { background:var(--charcoal); color:#fff; font-weight:600; border-bottom:3px solid var(--red); }
-  tr:nth-child(even) td { background:#fafafa; }
-  .pill { display:inline-block; padding:2px 9px; border-radius:10px; font-size:12px; font-weight:700; direction:ltr; }
-  .COMPLETED,.ok { background:#e3f4ea; color:var(--ok); }
-  .BLOCKED,.REJECTED,.INVALID,.VERIFICATION_FAILED,.fail { background:var(--red-soft); color:var(--red-dark); }
-  .NEEDS_INFO,.FAILED_SAFE,.AWAITING_APPROVAL,.APPROVED { background:#fff1e0; color:var(--warn); }
-  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:18px; }
-  .card { background:#fff; border:1px solid var(--line); border-top:4px solid var(--red); border-radius:10px;
-          padding:12px 16px; color:var(--muted); font-size:14px; box-shadow:0 4px 16px rgba(35,39,43,.05); }
-  .card b { display:block; font-size:28px; color:var(--charcoal); }
-  details { background:#fff; border:1px solid var(--line); border-radius:8px; margin:8px 0; padding:8px 12px; }
-  summary { cursor:pointer; font-weight:600; color:var(--charcoal); }
-  details[open] summary { color:var(--red); }
-  .ev { font-size:12.5px; direction:ltr; text-align:left; }
-  .ev td, .ev th { text-align:left; }
-  td.ltr { text-align:left; }
-  ul { margin:6px 0; }
-  .note { background:#fff; border:1px solid var(--line); border-right:5px solid var(--red); padding:12px 16px; border-radius:8px; }
-  .footer { text-align:center; color:var(--muted); font-size:12.5px; margin-top:40px; padding-top:16px; border-top:1px solid var(--line); }
-  svg text { font-family: "Segoe UI", Arial, sans-serif; }
-  @media print { body { background:#fff; } table, .card, details { box-shadow:none; } }
+  :root {
+    --red: #c4161c;        /* the approval gate, blocks */
+    --red-deep: #8f0f14;
+    --red-wash: #fbeceb;
+    --ink: #1f2328;        /* text, graphite */
+    --steel: #5e6670;      /* secondary text */
+    --rule: #dfe2e6;       /* lines */
+    --fog: #f3f4f6;        /* quiet surfaces */
+    --paper: #ffffff;
+    --ok: #1e7b4f;  --ok-wash: #e6f3ec;
+    --wait: #a65a06; --wait-wash: #fdf1e2;
+    --sans: "IBM Plex Sans Hebrew", "Segoe UI", Arial, sans-serif;
+    --mono: "IBM Plex Mono", Consolas, ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.65 var(--sans); }
+  a { color: inherit; }
+  a:focus-visible, summary:focus-visible { outline: 3px solid var(--red); outline-offset: 3px; border-radius: 4px; }
+  code, .code { font-family: var(--mono); font-size: .86em; direction: ltr; unicode-bidi: isolate; }
+  .en { direction: ltr; unicode-bidi: isolate; }
+
+  /* ---------- hero ---------- */
+  .hero { border-bottom: 1px solid var(--rule); }
+  .hero-inner { max-width: 1160px; margin: 0 auto; padding: 36px 32px 40px; }
+  .brand { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+  .brand img.logo { height: 72px; width: auto; display: block; }
+  .brand .client { color: var(--steel); font-size: 13px; text-align: center; }
+  .brand .client img { display: block; height: 36px; margin-top: 4px; }
+  h1 { font-size: 40px; line-height: 1.15; font-weight: 700; margin: 34px 0 10px; letter-spacing: -.01em; }
+  .lede { font-size: 19px; color: var(--steel); max-width: 62ch; margin: 0; }
+
+  /* the flow rail: the one bold element of the page */
+  .rail { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr) 1.35fr repeat(2, 1fr);
+          align-items: stretch; margin: 36px 0 18px; position: relative; }
+  .rail::before { content: ""; position: absolute; left: 5%; right: 5%; top: 50%; height: 2px; background: var(--rule); }
+  .step { position: relative; margin: 14px 6px; padding: 12px 12px 11px; background: var(--paper);
+          border: 1.5px solid var(--ink); border-radius: 10px; }
+  .step b { display: block; font-size: 15px; font-weight: 600; }
+  .step span { display: block; font-size: 12.5px; color: var(--steel); line-height: 1.35; }
+  .step i { display: block; font-style: normal; font-size: 12px; font-weight: 600; color: var(--steel); margin-bottom: 2px; }
+  .step.gate { margin: 0 6px; padding: 20px 16px; background: var(--red); border-color: var(--red); color: #fff;
+               border-radius: 12px; box-shadow: 0 10px 24px -12px rgba(196, 22, 28, .7); }
+  .step.gate span, .step.gate i { color: #ffe1df; }
+  .step.gate b { font-size: 17px; }
+  .facts { color: var(--steel); font-size: 15px; margin: 0; }
+  .facts strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout ---------- */
+  .layout { max-width: 1160px; margin: 0 auto; padding: 0 32px 80px; display: grid;
+            grid-template-columns: 210px minmax(0, 1fr); gap: 56px; }
+  nav.toc { position: sticky; top: 0; align-self: start; padding-top: 44px; font-size: 14px; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+  nav.toc li { counter-increment: toc; }
+  nav.toc a { display: flex; gap: 10px; padding: 6px 10px; border-radius: 6px; text-decoration: none; color: var(--steel); }
+  nav.toc a::before { content: counter(toc); color: #a3a9b0; font-weight: 600; min-width: 1.2em; }
+  nav.toc a:hover { background: var(--fog); color: var(--ink); }
+  main { min-width: 0; }
+  section { padding-top: 44px; }
+  h2 { font-size: 26px; font-weight: 700; margin: 0 0 6px; }
+  .intro { color: var(--steel); margin: 0 0 22px; max-width: 70ch; }
+  p { max-width: 75ch; }
+
+  /* principle */
+  .principle { border-right: 4px solid var(--red); padding: 4px 18px; margin: 22px 0 0; font-size: 18px; max-width: 70ch; }
+  .principle strong { font-weight: 700; }
+
+  /* ---------- scenario ledger ---------- */
+  .ledger { border-top: 2px solid var(--ink); }
+  .case { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; padding: 22px 0;
+          border-bottom: 1px solid var(--rule); }
+  .case h3 { font-size: 17px; font-weight: 600; margin: 0 0 8px; line-height: 1.35; }
+  .case .ids { font-family: var(--mono); font-size: 12.5px; color: var(--steel); direction: ltr; text-align: right; }
+  .status { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; margin-top: 10px; }
+  .status::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+  .tone-ok { color: var(--ok); } .tone-stop { color: var(--red); } .tone-wait { color: var(--wait); }
+  .ask { direction: ltr; text-align: left; margin: 0 0 12px; padding: 10px 14px; background: var(--fog);
+         border-radius: 8px; font-size: 14.5px; color: var(--ink); line-height: 1.55; }
+  .ask small { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--steel); margin-bottom: 2px; }
+  .why { margin: 0; padding: 0; list-style: none; direction: ltr; text-align: left; font-size: 14px; }
+  .why li { padding: 3px 0 3px 16px; position: relative; }
+  .why li::before { content: ""; position: absolute; left: 0; top: 11px; width: 7px; height: 7px; border-radius: 2px; }
+  .why .b::before { background: var(--red); } .why .m::before { background: var(--wait); } .why .a::before { background: var(--rule); }
+  .why .a { color: var(--steel); }
+  .proof { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; font-size: 14px; color: var(--steel); }
+  .proof b { color: var(--ink); font-weight: 600; }
+  .proof .ok-mark { color: var(--ok); font-weight: 700; }
+
+  /* ---------- generic tables ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th { text-align: right; font-weight: 600; font-size: 13.5px; color: var(--steel); padding: 0 12px 10px; border-bottom: 2px solid var(--ink); }
+  td { padding: 11px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td:first-child, th:first-child { padding-right: 0; }
+  td.num { color: var(--steel); width: 2.5em; }
+  td.k { font-weight: 600; white-space: nowrap; }
+  .mark { color: var(--ok); font-weight: 700; margin-left: 6px; }
+
+  /* tools */
+  .tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; border-top: 2px solid var(--ink); }
+  .tool { padding: 16px 0; border-bottom: 1px solid var(--rule); }
+  .tool .name { font-family: var(--mono); font-weight: 500; font-size: 15px; direction: ltr; display: inline-block; }
+  .tool .kind { font-size: 13px; color: var(--steel); margin-right: 8px; }
+  .tool.write .kind { color: var(--red); font-weight: 600; }
+  .tool p { margin: 6px 0 0; font-size: 14.5px; color: var(--steel); }
+
+  /* audit timeline */
+  details { border-bottom: 1px solid var(--rule); }
+  details:first-of-type { border-top: 2px solid var(--ink); }
+  summary { cursor: pointer; list-style: none; display: grid; grid-template-columns: 1fr auto auto; gap: 18px;
+            align-items: center; padding: 14px 4px; }
+  summary::-webkit-details-marker { display: none; }
+  summary .t { font-weight: 600; }
+  summary .c { color: var(--steel); font-size: 14px; }
+  summary .chev { width: 9px; height: 9px; border-left: 2px solid var(--steel); border-bottom: 2px solid var(--steel);
+                  transform: rotate(-45deg); transition: transform .15s; }
+  details[open] summary .chev { transform: rotate(135deg); }
+  @media (prefers-reduced-motion: reduce) { summary .chev { transition: none; } }
+  .timeline { direction: ltr; list-style: none; margin: 0 0 18px; padding: 0 0 0 18px; border-left: 2px solid var(--rule); }
+  .timeline li { position: relative; padding: 5px 0 5px 14px; font-size: 13.5px; display: grid;
+                 grid-template-columns: 70px 78px 170px minmax(0, 1fr); gap: 10px; }
+  .timeline li::before { content: ""; position: absolute; left: -24px; top: 12px; width: 10px; height: 10px;
+                         border-radius: 50%; background: var(--paper); border: 2px solid var(--rule); }
+  .timeline li.good::before { border-color: var(--ok); background: var(--ok); }
+  .timeline li.bad::before { border-color: var(--red); background: var(--red); }
+  .timeline li.note::before { border-color: var(--wait); background: var(--wait); }
+  .timeline .tm, .timeline .st { color: var(--steel); font-family: var(--mono); font-size: 12.5px; }
+  .timeline .ev { font-weight: 600; }
+  .timeline li.bad .ev { color: var(--red); } .timeline li.good .ev { color: var(--ok); } .timeline li.note .ev { color: var(--wait); }
+  .timeline .dt { font-family: var(--mono); font-size: 12px; color: var(--steel); overflow-wrap: anywhere; }
+
+  /* tests */
+  .score { font-size: 17px; margin: 0 0 16px; }
+  .score b { color: var(--ok); }
+  .tests { columns: 2; column-gap: 32px; list-style: none; padding: 0; margin: 0; direction: ltr; text-align: left; font-size: 14px; }
+  .tests li { break-inside: avoid; padding: 6px 0; border-bottom: 1px solid var(--rule); display: flex; gap: 10px; }
+  .tests .ok { color: var(--ok); font-weight: 700; } .tests .no { color: var(--red); font-weight: 700; }
+
+  /* runbook */
+  .runbook { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 2px solid var(--ink); margin: 0; }
+  .runbook dt, .runbook dd { padding: 14px 0; border-bottom: 1px solid var(--rule); margin: 0; }
+  .runbook dt { font-weight: 600; }
+  .runbook dd { font-size: 15px; }
+
+  ul.plain { padding-right: 20px; margin: 0; } ul.plain li { margin-bottom: 8px; max-width: 75ch; }
+
+  footer { border-top: 1px solid var(--rule); color: var(--steel); font-size: 13.5px; }
+  footer div { max-width: 1160px; margin: 0 auto; padding: 22px 32px; }
+
+  svg text { font-family: var(--sans); }
+
+  @media (max-width: 960px) {
+    .layout { grid-template-columns: 1fr; gap: 0; }
+    nav.toc { display: none; }
+    .rail { grid-template-columns: 1fr; }
+    .rail::before { left: 50%; right: auto; top: 0; bottom: 0; width: 2px; height: auto; }
+    .step, .step.gate { margin: 6px 0; }
+    .case { grid-template-columns: 1fr; gap: 10px; }
+    .tools, .tests { grid-template-columns: 1fr; columns: 1; }
+    .runbook { grid-template-columns: 1fr; } .runbook dt { border-bottom: 0; padding-bottom: 0; }
+    .timeline li { grid-template-columns: 64px 1fr; } .timeline .dt { grid-column: 1 / -1; }
+    h1 { font-size: 32px; }
+  }
+  @media print {
+    nav.toc { display: none; } .layout { grid-template-columns: 1fr; }
+    details { break-inside: avoid; } details:not([open]) { display: none; }
+    .step.gate { box-shadow: none; }
+  }
 </style>
 </head>
 <body>
-<div class="topbar"></div>
-<div class="hero"><div class="hero-inner">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;direction:ltr">
-    <div>{{ logo_svg|safe }}</div>
-    {% if client_logo %}<div style="text-align:center;color:var(--muted);font-size:12px">Prepared for<br><img src="{{ client_logo }}" alt="client logo" style="height:40px;margin-top:4px"></div>{% endif %}
-  </div>
-  <h1>As-Built <span class="accent">·</span> מסמך מסירה</h1>
-  <p class="sub">מסמך מסירה שנוצר אוטומטית מתוך State, Audit ותוצאות הבדיקות · <span class="ltr">{{ generated_at }}</span> · LLM provider: <span class="ltr">{{ llm }}</span></p>
-</div></div>
-<main>
 
-<div class="cards">
-  <div class="card">בקשות שעובדו<b>{{ requests|length }}</b></div>
-  <div class="card">אירועי Audit<b>{{ audit_count }}</b></div>
-  <div class="card">בדיקות אוטומטיות<b>{% if tests %}{{ tests.passed }}/{{ tests.total }}{% else %}—{% endif %}</b></div>
-  <div class="card">הושלמו ואומתו<b>{{ requests|selectattr("status","equalto","COMPLETED")|list|length }}</b></div>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="brand">
+      {% if logo %}<img class="logo" src="{{ logo }}" alt="Access Request Assistant">{% endif %}
+      {% if client_logo %}<div class="client">Prepared for<img src="{{ client_logo }}" alt=""></div>{% endif %}
+    </div>
+
+    <h1>מסמך מסירה: מערכת לטיפול בבקשות הרשאה</h1>
+    <p class="lede">המערכת מבינה בקשת הרשאה בטקסט חופשי, בודקת אותה מול ה־Policy וה־Directory, ועוצרת לאישור של המנהל הישיר לפני כל שינוי. אחרי הביצוע היא מאמתת את התוצאה ורושמת כל צעד.</p>
+
+    <ol class="rail" aria-label="הזרימה בפועל">
+      <li class="step"><i>1</i><b>Intake</b><span>בדיקת קלט ויצירת מזהה</span></li>
+      <li class="step"><i>2</i><b>Understand</b><span>LLM מחלץ שדות</span></li>
+      <li class="step"><i>3</i><b>Retrieve</b><span>Policy ו־Directory</span></li>
+      <li class="step"><i>4</i><b>Plan</b><span>ה־Guard מחליט</span></li>
+      <li class="step gate"><i>5</i><b>Approve</b><span>המערכת עוצרת. רק המנהל הישיר מאשר</span></li>
+      <li class="step"><i>6</i><b>Execute</b><span>הרשאה נכתבת, פעם אחת</span></li>
+      <li class="step"><i>7</i><b>Verify</b><span>קריאה חוזרת ו־Audit</span></li>
+    </ol>
+
+    <p class="facts">
+      נוצר ב־<strong class="en">{{ generated_at }}</strong> מתוך ריצה אמיתית:
+      <strong>{{ requests|length + intake_rejections|length }}</strong> בקשות,
+      <strong>{{ completed }}</strong> הושלמו ואומתו, <strong>{{ stopped }}</strong> נעצרו לפני ביצוע,
+      {% if tests %}<strong>{{ tests.passed }} מתוך {{ tests.total }}</strong> בדיקות אוטומטיות עברו,{% endif %}
+      <strong>{{ audit_count }}</strong> אירועים ב־Audit. ספק ה־LLM בריצה: <strong class="en">{{ llm }}</strong>.
+    </p>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="toc" aria-label="תוכן העניינים">
+    <ol>
+      <li><a href="#scenarios">תוצאות התרחישים</a></li>
+      <li><a href="#architecture">ארכיטקטורה</a></li>
+      <li><a href="#components">רכיבים ו־Tools</a></li>
+      <li><a href="#requirements">עמידה בדרישות</a></li>
+      <li><a href="#tests">בדיקות</a></li>
+      <li><a href="#audit">Audit Trail</a></li>
+      <li><a href="#diff">Design מול As-Built</a></li>
+      <li><a href="#runbook">Runbook</a></li>
+      <li><a href="#limits">מגבלות ידועות</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <p class="principle"><strong>ה־LLM מבין, הקוד מחליט, האדם מאשר.</strong> ה־LLM רק הופך טקסט לשדות. מה מותר נקבע בקוד דטרמיניסטי (<code>guard.py</code>) מול ה־Policy וה־Directory, וכל שינוי מחכה לאישור של המנהל הישיר.</p>
+
+    <!-- ================================================= scenarios -->
+    <section id="scenarios">
+      <h2>תוצאות התרחישים</h2>
+      <p class="intro">כל בקשה שעברה במערכת בריצה הזו, עם ההחלטה והסיבות שלה. הנתונים נשלפו ישירות מה־State וה־Audit.</p>
+
+      <div class="ledger">
+      {% for r in requests %}
+        <article class="case">
+          <div>
+            <h3>{{ r.scenario }}</h3>
+            <div class="ids">{{ r.ref }}{% if r.ref %}<br>{% endif %}{{ r.request_id }}</div>
+            <div class="status tone-{{ r.tone }}">{{ r.status_he }}</div>
+          </div>
+          <div>
+            <p class="ask"><small>{{ r.input.requester_id }} → {{ r.input.target_user_id }}</small>{{ r.input.request_text }}</p>
+
+            {% set d = r.decision or {} %}
+            {% if d.block_reasons or d.missing or d.assumptions or r.error %}
+            <ul class="why">
+              {% for x in d.block_reasons or [] %}<li class="b">{{ x }}</li>{% endfor %}
+              {% for x in d.missing or [] %}<li class="m">{{ x }}</li>{% endfor %}
+              {% if r.error %}<li class="m">{{ r.error }}</li>{% endif %}
+              {% for x in d.assumptions or [] %}<li class="a">{{ x }}</li>{% endfor %}
+            </ul>
+            {% endif %}
+
+            <div class="proof">
+              {% if r.knowledge %}<span>מקורות: <b class="en">{{ r.knowledge|map(attribute="policy_id")|join(", ") }}</b></span>{% endif %}
+              {% if r.plan %}<span>סיכון: <b class="en">{{ r.plan.risk_level }}</b></span>{% endif %}
+              {% if r.blocked_before_approval %}<span>ניסיון ביצוע לפני אישור: <b>נחסם</b></span>{% endif %}
+              {% if r.approval %}<span>{{ "אושר" if r.approval.approved else "נדחה" }} ע״י <b class="en">{{ r.approval.approver_id }}</b>{% if r.approval.reason %}, <bdi>"{{ r.approval.reason }}"</bdi>{% endif %}</span>{% endif %}
+              {% if r.tool_errors %}<span>כשלי Tool: <b>{{ r.tool_errors }}</b>, טופלו ב־Retry ועצירה בטוחה</span>{% endif %}
+              {% if r.result %}<span>הרשאה: <b class="en">{{ r.result.grant_id }} · {{ r.result.system }}/{{ r.result.access_level }}</b></span>{% endif %}
+              {% if r.verification %}<span>{% if r.verification.ok %}<span class="ok-mark">✓</span> אומת מול ה־Directory{% else %}האימות נכשל{% endif %}</span>{% endif %}
+              {% if r.replayed %}<span>Replay: <b>הוגש ובוצע שוב, בלי כפילות</b></span>{% endif %}
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+      {% for e in intake_rejections %}
+        <article class="case">
+          <div>
+            <h3>{{ "קלט לא תקין" }}</h3>
+            <div class="ids">{{ e.data.input.external_ref if e.data.input and e.data.input.external_ref else "" }}</div>
+            <div class="status tone-stop">נדחה בקליטה</div>
+          </div>
+          <div>
+            {% if e.data.input and e.data.input.request_text %}<p class="ask"><small>schema validation</small>{{ e.data.input.request_text }}</p>{% endif %}
+            <ul class="why">{% for x in e.data.errors %}<li class="b">{{ x }}</li>{% endfor %}</ul>
+            <div class="proof"><span>לא נוצרה רשומה ולא הופעל אף Tool</span></div>
+          </div>
+        </article>
+      {% endfor %}
+      </div>
+    </section>
+
+    <!-- ================================================= architecture -->
+    <section id="architecture">
+      <h2>ארכיטקטורה</h2>
+      <p class="intro">שבעת השלבים, הרכיב שמבצע כל אחד מהם והמקורות שהם נוגעים בהם. השלב באדום הוא היחיד שדורש אדם, וה־Tool באדום הוא היחיד שמשנה מצב.</p>
+      <svg viewBox="0 0 1000 400" width="100%" role="img" aria-label="Architecture diagram" style="direction:ltr;display:block">
+        <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5e6670"/></marker></defs>
+        {% set steps = [("Intake","validate + ID"),("Understand","LLM extract"),("Retrieve","KB + Directory"),("Plan","guard decides"),("Approve","human"),("Execute","grant_access"),("Verify","re-read + report")] %}
+        {% for s in steps %}{% set x = 20 + loop.index0*140 %}{% set gate = loop.index == 5 %}
+          <rect x="{{x}}" y="20" width="120" height="58" rx="9" fill="{{ '#c4161c' if gate else '#ffffff' }}" stroke="{{ '#c4161c' if gate else '#1f2328' }}" stroke-width="1.5"/>
+          <text x="{{x+60}}" y="45" text-anchor="middle" font-size="14" font-weight="600" fill="{{ '#ffffff' if gate else '#1f2328' }}">{{ s[0] }}</text>
+          <text x="{{x+60}}" y="64" text-anchor="middle" font-size="11.5" fill="{{ '#fde2e1' if gate else '#5e6670' }}">{{ s[1] }}</text>
+          {% if not loop.last %}<line x1="{{x+121}}" y1="49" x2="{{x+138}}" y2="49" stroke="#5e6670" stroke-width="1.5" marker-end="url(#ar)"/>{% endif %}
+        {% endfor %}
+        {% set comps = [(1,"LLM","Claude / OpenAI / Mock",0),(2,"Read tools","search · read_policy",0),(3,"Guard","deterministic rules",0),(4,"Manager","approve + plan_hash",1),(5,"Write tool","grant_access",2),(6,"Read tool","lookup_user",0)] %}
+        {% for c in comps %}{% set x = 20 + c[0]*140 %}
+          <line x1="{{x+60}}" y1="78" x2="{{x+60}}" y2="136" stroke="#c9cdd2" stroke-dasharray="4 3"/>
+          <rect x="{{x}}" y="136" width="120" height="54" rx="7" fill="{{ '#fbeceb' if c[3]==1 else ('#c4161c' if c[3]==2 else '#f3f4f6') }}" stroke="{{ '#c4161c' if c[3] else '#f3f4f6' }}"/>
+          <text x="{{x+60}}" y="158" text-anchor="middle" font-size="13" font-weight="600" fill="{{ '#ffffff' if c[3]==2 else '#1f2328' }}">{{c[1]}}</text>
+          <text x="{{x+60}}" y="177" text-anchor="middle" font-size="10.5" fill="{{ '#fde2e1' if c[3]==2 else '#5e6670' }}">{{c[2]}}</text>
+        {% endfor %}
+        <rect x="300" y="236" width="260" height="46" rx="7" fill="#ffffff" stroke="#1f2328"/>
+        <text x="430" y="256" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">Knowledge Base</text>
+        <text x="430" y="273" text-anchor="middle" font-size="11" fill="#5e6670">data/policies/*.md · 5 policies</text>
+        <rect x="600" y="236" width="260" height="46" rx="7" fill="#ffffff" stroke="#1f2328"/>
+        <text x="730" y="256" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">Directory (system state)</text>
+        <text x="730" y="273" text-anchor="middle" font-size="11" fill="#5e6670">runtime/directory.json</text>
+        <g stroke="#c9cdd2" stroke-width="1.2" fill="none">
+          <line x1="360" y1="190" x2="400" y2="236"/><line x1="790" y1="190" x2="745" y2="236"/>
+          <line x1="920" y1="190" x2="820" y2="236"/><path d="M380 190 Q 520 215 650 236" stroke-dasharray="3 3"/>
+        </g>
+        <rect x="20" y="314" width="960" height="36" rx="7" fill="#1f2328"/>
+        <text x="500" y="337" text-anchor="middle" font-size="12.5" fill="#ffffff">State machine · SQLite state store · idempotency keys · JSONL audit log, written by every step</text>
+        <text x="500" y="378" text-anchor="middle" font-size="12" fill="#5e6670">Stop states: INVALID, NEEDS_INFO, BLOCKED, REJECTED, FAILED_SAFE (retry-able), VERIFICATION_FAILED</text>
+      </svg>
+    </section>
+
+    <!-- ================================================= components -->
+    <section id="components">
+      <h2>רכיבים ו־Tools</h2>
+      <p class="intro">כל קובץ אחראי על דבר אחד. ה־LLM אף פעם לא קורא ל־Tool ישירות: כל קריאה עוברת ב־<code>Engine.call_tool</code>, שבודק Allowlist וסכמה, מבצע Retry ורושם ל־Audit.</p>
+      <table>
+        <thead><tr><th>רכיב</th><th>קובץ</th><th>אחריות</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Schemas</td><td><code>app/schemas.py</code></td><td>חוזים לקלט, לפלט ה־LLM ולכל Tool. שדה לא מוכר נדחה.</td></tr>
+          <tr><td class="k">LLM</td><td><code>app/llm.py</code></td><td>חילוץ שדות מהטקסט. הטקסט מוגדר כ־Untrusted, והפלט עובר Validation עם Retry אחד.</td></tr>
+          <tr><td class="k">Guard</td><td><code>app/guard.py</code></td><td>החלטה דטרמיניסטית: מותר, חסר מידע או חסום. כולל זיהוי Prompt Injection.</td></tr>
+          <tr><td class="k">State machine</td><td><code>app/state.py</code></td><td>סטטוסים ומעברים מותרים בלבד. SQLite, כולל טבלת Idempotency.</td></tr>
+          <tr><td class="k">Engine</td><td><code>app/engine.py</code></td><td>מנהל את שבעת השלבים, את שער האישור, את ה־Retry ואת האימות שאחרי הביצוע.</td></tr>
+          <tr><td class="k">Audit</td><td><code>app/audit.py</code></td><td>יומן Append-only: כל שלב, קריאה ל־Tool, שגיאה, אישור וסטטוס.</td></tr>
+          <tr><td class="k">Report, CLI</td><td><code>app/report.py</code>, <code>app/__main__.py</code></td><td>המסמך הזה וממשק שורת הפקודה.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="tools" style="margin-top:28px">
+        <div class="tool"><span class="name">search_policies</span><span class="kind">קריאה</span><p>חיפוש TF-IDF בחמשת מסמכי ה־Policy. מחזיר מזהה מקור וציון.</p></div>
+        <div class="tool"><span class="name">read_policy</span><span class="kind">קריאה</span><p>מחזיר את ה־Policy של מערכת. מערכת שאינה ברשימה הסגורה נדחית.</p></div>
+        <div class="tool"><span class="name">lookup_user</span><span class="kind">קריאה</span><p>מחלקה, מנהל, סטטוס והרשאות. גם הפלט עובר Validation.</p></div>
+        <div class="tool write"><span class="name">grant_access</span><span class="kind">כתיבה</span><p>רק אחרי אישור עם <code>plan_hash</code> תואם. ערך <code>admin</code> לא ניתן לביטוי בסכמה, ו־request_id קיים מחזיר את ההרשאה הקיימת.</p></div>
+      </div>
+    </section>
+
+    <!-- ================================================= requirements -->
+    <section id="requirements">
+      <h2>עמידה בדרישות</h2>
+      <p class="intro">שתים־עשרה הדרישות הטכניות מהמשימה, ואיפה כל אחת ממומשת.</p>
+      <table>
+        <thead><tr><th></th><th>דרישה</th><th>מימוש</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td class="k"><span class="mark">✓</span>קלט ו־Validation</td><td>JSON שנבדק מול <code>AccessRequestInput</code>. שגיאה מציינת את השדה, ולא נוצרת רשומה.</td></tr>
+          <tr><td class="num">2</td><td class="k"><span class="mark">✓</span>שימוש ב־LLM</td><td>חילוץ intent, מערכת, רמה, משך, הצדקה ופערים.</td></tr>
+          <tr><td class="num">3</td><td class="k"><span class="mark">✓</span>Knowledge Retrieval</td><td>5 מסמכי Policy, שלוש ההתאמות הטובות עם מזהה וציון.</td></tr>
+          <tr><td class="num">4</td><td class="k"><span class="mark">✓</span>שני Tools לפחות</td><td>3 לקריאה, 1 לכתיבה.</td></tr>
+          <tr><td class="num">5</td><td class="k"><span class="mark">✓</span>State</td><td>SQLite: סטטוס, היסטוריה, החלטות, תוצאות Tools, אישור ואימות.</td></tr>
+          <tr><td class="num">6</td><td class="k"><span class="mark">✓</span>Human-in-the-loop</td><td>רק המנהל הישיר מאשר, והאישור קשור ל־<code>plan_hash</code>.</td></tr>
+          <tr><td class="num">7</td><td class="k"><span class="mark">✓</span>Schemas</td><td>Validation לפני ואחרי כל Tool. שגיאה עוצרת ב־FAILED_SAFE.</td></tr>
+          <tr><td class="num">8</td><td class="k"><span class="mark">✓</span>Idempotency</td><td>ID שנגזר מהתוכן, מפתח פעולה ייחודי ב־DB, ו־Tool שמחזיר הרשאה קיימת.</td></tr>
+          <tr><td class="num">9</td><td class="k"><span class="mark">✓</span>Error Handling</td><td>עד 3 ניסיונות עם backoff לשגיאה זמנית, ואז עצירה בטוחה שאפשר להמשיך ממנה.</td></tr>
+          <tr><td class="num">10</td><td class="k"><span class="mark">✓</span>Post-Action Verification</td><td>קריאה חוזרת מה־Directory וחמש בדיקות.</td></tr>
+          <tr><td class="num">11</td><td class="k"><span class="mark">✓</span>Audit Trail</td><td><code>runtime/audit.jsonl</code>, ומוצג גם כאן.</td></tr>
+          <tr><td class="num">12</td><td class="k"><span class="mark">✓</span>HTML As-Built</td><td>המסמך הזה, שנוצר אוטומטית מהנתונים.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ================================================= tests -->
+    <section id="tests">
+      <h2>בדיקות</h2>
+      {% if tests %}
+      <p class="score"><b>{{ tests.passed }} מתוך {{ tests.total }}</b> בדיקות אוטומטיות עברו בריצה הזו (<code>python -m pytest</code>).</p>
+      <ul class="tests">
+        {% for c in tests.cases %}<li><span class="{{ 'ok' if c.ok else 'no' }}">{{ "✓" if c.ok else "✗" }}</span><span>{{ c.readable }}</span></li>{% endfor %}
+      </ul>
+      {% else %}
+      <p class="intro">אין תוצאות בדיקות בריצה הזו. כדי לצרף אותן, הריצו <code>python demo.py</code>.</p>
+      {% endif %}
+    </section>
+
+    <!-- ================================================= audit -->
+    <section id="audit">
+      <h2>Audit Trail</h2>
+      <p class="intro">כל אירוע שנרשם לכל בקשה, לפי הסדר. ירוק לאישור ולאימות, אדום לחסימה ולשגיאה, כתום ל־Replay ולדחייה.</p>
+      {% for r in requests %}
+      <details>
+        <summary><span class="t">{{ r.scenario }}</span><span class="c"><span class="en">{{ r.request_id }}</span>, {{ r.timeline|length }} אירועים</span><span class="chev" aria-hidden="true"></span></summary>
+        <ol class="timeline">
+          {% for e in r.timeline %}
+          <li class="{{ e.tone }}"><span class="tm">{{ e.time }}</span><span class="st">{{ e.step }}</span><span class="ev">{{ e.event }}</span><span class="dt">{{ e.data|tojson|truncate(200) }}</span></li>
+          {% endfor %}
+        </ol>
+      </details>
+      {% endfor %}
+    </section>
+
+    <!-- ================================================= design vs as-built -->
+    <section id="diff">
+      <h2>Design מול As-Built</h2>
+      <p class="intro">כל מקום שבו המימוש שונה מה־Design שניתן, ולמה.</p>
+      <table>
+        <thead><tr><th>ב־Design</th><th>מה מומש</th><th>למה</th></tr></thead>
+        <tbody>
+          <tr><td>Plan: בניית תוכנית והחלטה על Tool, אפשר בעזרת LLM</td><td>ההחלטה בקוד דטרמיניסטי (Guard). ה־LLM משמש רק ל־Understand.</td><td>החלטת הרשאה צריכה להיות צפויה, ניתנת לבדיקה וחסינה ל־Prompt Injection.</td></tr>
+          <tr><td>Approve: עצירה ואישור אנושי</td><td>האישור נשמר עם <code>plan_hash</code>, ורק המנהל הישיר מורשה.</td><td>מונע מצב שבו מאשרים דבר אחד ומבצעים דבר אחר.</td></tr>
+          <tr><td>Intake: יצירת Request ID</td><td>ה־ID נגזר מ־hash של תוכן הבקשה.</td><td>הגשה חוזרת מזוהה אוטומטית כ־Replay.</td></tr>
+          <tr><td>Retrieve: ידע מקומי</td><td>TF-IDF במקום Embeddings.</td><td>חמישה מסמכים. שקוף, דטרמיניסטי ובלי תלויות.</td></tr>
+          <tr><td>Verify &amp; Report</td><td>הדוח נוצר בפקודה נפרדת ומכסה את כל הריצות.</td><td>מסמך מסירה אחד לכל התרחישים.</td></tr>
+          <tr><td>אין</td><td><code>FAILED_SAFE</code> מאפשר להריץ Execute שוב בלי אישור חדש.</td><td>התקלה הייתה בתשתית ולא בתוכנית, וה־Idempotency מונע כפילות.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ================================================= runbook -->
+    <section id="runbook">
+      <h2>Runbook</h2>
+      <p class="intro">מה עושים בכל מצב עצירה.</p>
+      <dl class="runbook">
+        <dt class="tone-wait">חסר מידע</dt><dd>לפנות למבקש עם רשימת השדות החסרים ולהגיש בקשה חדשה ומלאה.</dd>
+        <dt class="tone-stop">נחסם</dt><dd>לא מבצעים. הסיבה וסעיף ה־Policy מופיעים בתוצאות. בקשות admin ו־Prompt Injection מעבירים ל־Security. עובד שלא קיים ב־Directory נקלט קודם ע״י HR.</dd>
+        <dt class="tone-wait">נעצר בבטחה</dt><dd>לבדוק ב־Audit מה נכשל (<code>python -m app audit &lt;id&gt;</code>). אחרי התיקון מריצים <code>python -m app execute &lt;id&gt;</code>. אין סכנת כפילות.</dd>
+        <dt class="tone-stop">האימות נכשל</dt><dd>הפעולה דווחה כמוצלחת אבל לא נמצאה ב־Directory. לבדוק ידנית ולא להריץ שוב לפני הבדיקה.</dd>
+        <dt>איפוס סביבת הדמו</dt><dd><code>python -m app reset</code></dd>
+      </dl>
+    </section>
+
+    <!-- ================================================= limits -->
+    <section id="limits">
+      <h2>מגבלות ידועות</h2>
+      <ul class="plain">
+        <li>ה־Directory וה־Knowledge Base הם קבצים מקומיים שמדמים מערכות אמיתיות. בפרודקשן ה־Tools יקראו ל־API של IdP (Entra ID או Okta) ושל ITSM.</li>
+        <li>זיהוי Prompt Injection מבוסס דפוסים ואינו מלא. ההגנה העיקרית היא שה־LLM לא מחליט, וגם <code>admin</code> נחסם ב־Guard ובסכמה.</li>
+        <li>זהות המגיש והמאשר נמסרת כפרמטר, בלי אימות. בפרודקשן הזהות תגיע מ־SSO והאישור מ־Teams או ServiceNow.</li>
+        <li>אין הסרה אוטומטית של הרשאות שפג תוקפן. התאריך נשמר, אבל לא מומש תהליך שמסיר אותן.</li>
+        <li>עיבוד סינכרוני למשתמש יחיד. SQLite מתאים לדמו; בפרודקשן PostgreSQL.</li>
+      </ul>
+    </section>
+  </main>
 </div>
 
-<h2>1. מטרה ו־Scope</h2>
-<p>מערכת שמקבלת בקשת הרשאה בטקסט חופשי, מחלצת ממנה שדות בעזרת LLM, מאתרת את ה־Policy הרלוונטי, בודקת את המשתמש ב־Directory,
-ומכינה תוכנית פעולה. התוכנית <b>נעצרת לאישור של המנהל הישיר</b>. רק אחרי האישור ההרשאה נכתבת ל־Directory, נקראת מחדש לאימות ונרשמת ב־Audit.</p>
-<p class="note"><b>עקרון מנחה:</b> ה־LLM מציע, הקוד מחליט. ה־LLM רק מחלץ שדות מהטקסט. ההחלטה אם מותר נקבעת בקוד דטרמיניסטי (<span class="ltr">guard.py</span>) שקורא את ה־Policy ואת ה־Directory, ולכן גם LLM שהוטעה לא יכול להעניק הרשאה.</p>
-
-<h2>2. ארכיטקטורה וזרימה בפועל</h2>
-<svg viewBox="0 0 1000 430" width="100%" role="img" aria-label="Architecture diagram" style="direction:ltr">
-  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#6b7177"/></marker></defs>
-  {% set steps = [("1. Intake","validate + ID"),("2. Understand","LLM extract"),("3. Retrieve","KB + Directory"),("4. Plan","guard decides"),("5. Approve","HUMAN"),("6. Execute","grant_access"),("7. Verify","re-read + report")] %}
-  {% for s in steps %}{% set x = 20 + loop.index0*140 %}
-    <rect x="{{x}}" y="30" width="120" height="62" rx="8" fill="{{ '#fdeeee' if loop.index==5 else '#ffffff' }}" stroke="{{ '#c4161c' if loop.index==5 else '#2f3439' }}" stroke-width="{{ 2.5 if loop.index==5 else 1.5 }}"/>
-    <text x="{{x+60}}" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="{{ '#9b1016' if loop.index==5 else '#23272b' }}">{{ s[0] }}</text>
-    <text x="{{x+60}}" y="76" text-anchor="middle" font-size="11.5" fill="#5b6475">{{ s[1] }}</text>
-    {% if not loop.last %}<line x1="{{x+120}}" y1="61" x2="{{x+138}}" y2="61" stroke="#5b6475" stroke-width="1.5" marker-end="url(#ar)"/>{% endif %}
-  {% endfor %}
-  {% set comps = [(1,"LLM","Claude/OpenAI/Mock","#f5f6f7","#6b7177"),(2,"Tools (read)","search · read_policy","#f5f6f7","#6b7177"),(3,"Guard","policy + identity rules","#2f3439","#2f3439"),(4,"Manager","approve + plan_hash","#fdeeee","#c4161c"),(5,"Tool (write)","grant_access","#c4161c","#c4161c"),(6,"Tool (read)","lookup_user (verify)","#f5f6f7","#6b7177")] %}
-  {% for c in comps %}{% set x = 20 + c[0]*140 %}
-    <line x1="{{x+60}}" y1="92" x2="{{x+60}}" y2="150" stroke="#9aa3b2" stroke-dasharray="4 3"/>
-    <rect x="{{x}}" y="150" width="120" height="58" rx="6" fill="{{c[3]}}" stroke="{{c[4]}}"/>
-    <text x="{{x+60}}" y="173" text-anchor="middle" font-size="13" font-weight="600" fill="{{ '#ffffff' if c[3] in ('#2f3439','#c4161c') else '#23272b' }}">{{c[1]}}</text>
-    <text x="{{x+60}}" y="193" text-anchor="middle" font-size="10.5" fill="{{ '#f1d0d1' if c[3] in ('#2f3439','#c4161c') else '#6b7177' }}">{{c[2]}}</text>
-  {% endfor %}
-  <rect x="300" y="250" width="260" height="46" rx="6" fill="#f7f8fa" stroke="#9aa3b2"/>
-  <text x="430" y="270" text-anchor="middle" font-size="13" font-weight="600">Knowledge Base</text>
-  <text x="430" y="287" text-anchor="middle" font-size="11" fill="#5b6475">data/policies/*.md (5 policies)</text>
-  <rect x="600" y="250" width="260" height="46" rx="6" fill="#f7f8fa" stroke="#9aa3b2"/>
-  <text x="730" y="270" text-anchor="middle" font-size="13" font-weight="600">Directory (system state)</text>
-  <text x="730" y="287" text-anchor="middle" font-size="11" fill="#5b6475">runtime/directory.json</text>
-  <line x1="360" y1="208" x2="400" y2="250" stroke="#9aa3b2"/><line x1="780" y1="208" x2="740" y2="250" stroke="#9aa3b2"/>
-  <line x1="920" y1="208" x2="820" y2="250" stroke="#9aa3b2"/><line x1="360" y1="208" x2="650" y2="250" stroke="#9aa3b2" stroke-dasharray="3 3"/>
-  <rect x="20" y="330" width="960" height="40" rx="6" fill="#2f3439"/>
-  <text x="500" y="355" text-anchor="middle" font-size="13" fill="#fff">State Machine + State Store (SQLite) · Idempotency keys · Audit Log (JSONL) — written by every step</text>
-  <rect x="20" y="382" width="960" height="34" rx="6" fill="#fdeeee" stroke="#c4161c"/>
-  <text x="500" y="404" text-anchor="middle" font-size="12.5">Stop states: INVALID · NEEDS_INFO · BLOCKED · REJECTED · FAILED_SAFE (retry-able) · VERIFICATION_FAILED</text>
-</svg>
-
-<h2>3. רכיבים</h2>
-<table>
-<tr><th>רכיב</th><th>קובץ</th><th>אחריות</th></tr>
-<tr><td>Schemas</td><td class="ltr">app/schemas.py</td><td>חוזים (Pydantic) לקלט, לפלט ה־LLM, לקלט ולפלט של כל Tool ולתוכנית. שדות לא מוכרים נדחים (<span class="ltr">extra=forbid</span>).</td></tr>
-<tr><td>LLM</td><td class="ltr">app/llm.py</td><td>Understand: חילוץ intent, system, level, duration, justification, gaps. הטקסט מוגדר כ־Untrusted. הפלט עובר Validation, וב־Retry אחד מוחזרת השגיאה למודל.</td></tr>
-<tr><td>Tools</td><td class="ltr">app/tools.py</td><td>Allowlist של 4 Tools: 3 לקריאה ו־1 לכתיבה. חיפוש TF-IDF ב־KB. כתיבה אטומית ל־Directory. Failure injection להדגמה.</td></tr>
-<tr><td>Guard</td><td class="ltr">app/guard.py</td><td>החלטה דטרמיניסטית (ALLOW, NEEDS_INFO או BLOCK) לפי Policy ו־Directory, וזיהוי Prompt Injection.</td></tr>
-<tr><td>State Machine</td><td class="ltr">app/state.py</td><td>סטטוסים ומעברים מותרים בלבד. שמירה ב־SQLite, כולל טבלת Idempotency.</td></tr>
-<tr><td>Engine</td><td class="ltr">app/engine.py</td><td>Orchestration של 7 השלבים, Approval gate, Retry עם backoff, Post-Action Verification.</td></tr>
-<tr><td>Audit</td><td class="ltr">app/audit.py</td><td>יומן Append-only בפורמט JSONL: כל שלב, קריאה ל־Tool, שגיאה, אישור וסטטוס.</td></tr>
-<tr><td>Report / CLI</td><td class="ltr">app/report.py, app/__main__.py</td><td>המסמך הזה וממשק שורת פקודה.</td></tr>
-</table>
-
-<h2>4. Tools</h2>
-<table>
-<tr><th>Tool</th><th>סוג</th><th>Input schema</th><th>בקרות</th></tr>
-<tr><td class="ltr">search_policies</td><td>קריאה</td><td class="ltr">query, top_k(1-5)</td><td>מחזיר מזהה מקור וציון</td></tr>
-<tr><td class="ltr">read_policy</td><td>קריאה</td><td class="ltr">system ∈ {crm, finance_erp, hr_portal, prod_db}</td><td>ערך שאינו ברשימה נדחה</td></tr>
-<tr><td class="ltr">lookup_user</td><td>קריאה</td><td class="ltr">user_id ~ ^u\d{4}$</td><td>גם הפלט עובר Validation (UserRecord)</td></tr>
-<tr><td class="ltr">grant_access</td><td><b>כתיבה</b></td><td class="ltr">request_id, user_id, system, access_level ∈ {read, write}, duration_days(1-180)</td><td>אפשרי רק אחרי Approval עם plan_hash תואם. Idempotency כפול: מפתח ב־DB ו־request_id ב־Tool. <span class="ltr">admin</span> לא ניתן לביטוי בסכמה.</td></tr>
-</table>
-
-<h2>5. עמידה בדרישות</h2>
-<table>
-<tr><th>#</th><th>דרישה</th><th>מימוש</th></tr>
-<tr><td>1</td><td>קלט ו־Validation</td><td>JSON ו־<span class="ltr">AccessRequestInput</span>. שגיאה מפרטת את השדה החסר ולא נוצרת רשומה.</td></tr>
-<tr><td>2</td><td>שימוש ב־LLM</td><td>Extraction של שדות ופערים בשלב Understand.</td></tr>
-<tr><td>3</td><td>Knowledge Retrieval</td><td>5 מסמכי Policy, חיפוש TF-IDF, top-3 עם מזהה וציון.</td></tr>
-<tr><td>4</td><td>שני Tools לפחות</td><td>3 Tools לקריאה ו־1 לכתיבה.</td></tr>
-<tr><td>5</td><td>State</td><td>SQLite: סטטוס, היסטוריה, החלטות, תוצאות Tools, Approval ו־Verification.</td></tr>
-<tr><td>6</td><td>Human-in-the-loop</td><td>רק המנהל הישיר יכול לאשר. האישור קשור ל־plan_hash.</td></tr>
-<tr><td>7</td><td>Schemas</td><td>Validation לפני ואחרי כל Tool. שגיאת Schema מובילה ל־FAILED_SAFE.</td></tr>
-<tr><td>8</td><td>Idempotency</td><td>request_id נגזר מהתוכן, מפתח פעולה (PK) ב־DB, ו־Tool שמחזיר Grant קיים.</td></tr>
-<tr><td>9</td><td>Error Handling</td><td>עד 3 Retries עם backoff על שגיאה זמנית, ואז FAILED_SAFE עם האפשרות להריץ שוב. שגיאה קבועה או פלט פגום עוצרים מיד.</td></tr>
-<tr><td>10</td><td>Post-Action Verification</td><td>קריאה מחדש מה־Directory ו־5 בדיקות.</td></tr>
-<tr><td>11</td><td>Audit</td><td><span class="ltr">runtime/audit.jsonl</span></td></tr>
-<tr><td>12</td><td>As-Built HTML</td><td>המסמך הזה, שנוצר מהנתונים.</td></tr>
-</table>
-
-<h2>6. תוצאות הרצת התרחישים</h2>
-<table>
-<tr><th>Ticket</th><th>Request ID</th><th>בקשה</th><th>סטטוס</th><th>החלטה / סיבה</th><th>Approval</th><th>תוצאה</th></tr>
-{% for r in requests %}
-<tr>
-  <td class="ltr">{{ r.input.external_ref or "" }}</td>
-  <td class="ltr">{{ r.request_id }}</td>
-  <td class="ltr" style="max-width:260px">{{ r.input.request_text[:110] }}{% if r.input.request_text|length > 110 %}…{% endif %}</td>
-  <td><span class="pill {{ r.status }}">{{ r.status }}</span></td>
-  <td class="ltr" style="font-size:12.5px">
-    {% if r.decision %}{{ r.decision.verdict }}
-      {% for x in r.decision.block_reasons %}<br>• {{ x }}{% endfor %}
-      {% for x in r.decision.missing %}<br>• {{ x }}{% endfor %}
-    {% endif %}{% if r.error %}<br>⚠ {{ r.error }}{% endif %}
-  </td>
-  <td class="ltr">{% if r.approval %}{{ "approved" if r.approval.approved else "rejected" }} by {{ r.approval.approver_id }}{% else %}—{% endif %}</td>
-  <td class="ltr">{% if r.result %}{{ r.result.grant_id }}<br>{{ r.result.system }}/{{ r.result.access_level }}{% endif %}
-    {% if r.verification %}<br><span class="pill {{ 'ok' if r.verification.ok else 'fail' }}">verify {{ "OK" if r.verification.ok else "FAIL" }}</span>{% endif %}</td>
-</tr>
-{% endfor %}
-{% for e in intake_rejections %}
-<tr><td class="ltr">{{ e.data.input.external_ref if e.data.input else "" }}</td><td>—</td><td class="ltr">{{ (e.data.input.request_text or "")[:110] if e.data.input else "" }}</td>
-<td><span class="pill INVALID">INVALID</span></td><td class="ltr" style="font-size:12.5px">{% for x in e.data.errors %}• {{ x }}<br>{% endfor %}</td><td>—</td><td>לא נוצרה רשומה</td></tr>
-{% endfor %}
-</table>
-
-<h2>7. Audit Trail לכל בקשה</h2>
-{% for r in requests %}
-<details><summary><span class="ltr">{{ r.request_id }} · {{ r.input.external_ref }}</span> · <span class="pill {{ r.status }}">{{ r.status }}</span> · {{ audits[r.request_id]|length }} אירועים</summary>
-<table class="ev"><tr><th>time</th><th>step</th><th>event</th><th>data</th></tr>
-{% for e in audits[r.request_id] %}
-<tr><td>{{ e.ts[11:19] }}</td><td>{{ e.step }}</td><td><b>{{ e.event }}</b></td><td style="word-break:break-word">{{ e.data|tojson|truncate(420) }}</td></tr>
-{% endfor %}</table></details>
-{% endfor %}
-
-<h2>8. Test Evidence</h2>
-{% if tests %}
-<p>{{ tests.passed }} מתוך {{ tests.total }} בדיקות עברו (<span class="ltr">python -m pytest</span>).</p>
-<table class="ev"><tr><th>test</th><th>result</th><th>time (s)</th></tr>
-{% for c in tests.cases %}<tr><td>{{ c.name }}</td><td><span class="pill {{ 'ok' if c.ok else 'fail' }}">{{ "PASS" if c.ok else "FAIL" }}</span></td><td>{{ c.time }}</td></tr>{% endfor %}
-</table>
-{% else %}<p>לא נמצא קובץ תוצאות. הריצו <span class="ltr">python demo.py</span> או <span class="ltr">pytest --junitxml=runtime/test_results.xml</span>.</p>{% endif %}
-
-<h2>9. Design vs. As-Built</h2>
-<table>
-<tr><th>Design</th><th>As-Built</th><th>סיבה</th></tr>
-<tr><td>Plan: בניית תוכנית והחלטה על Tool (אפשר באמצעות LLM)</td><td>ההחלטה מתקבלת בקוד דטרמיניסטי (Guard), וה־LLM משמש רק ל־Understand.</td><td>החלטת הרשאה חייבת להיות צפויה, ניתנת לבדיקה ולא חשופה ל־Prompt Injection.</td></tr>
-<tr><td>Approve: עצירה ואישור אנושי</td><td>האישור נשמר יחד עם <span class="ltr">plan_hash</span>. שינוי בתוכנית אחרי האישור חוסם את Execute. רק המנהל הישיר מורשה לאשר.</td><td>מונע מצב שבו מאשרים דבר אחד ומבצעים דבר אחר.</td></tr>
-<tr><td>Intake: יצירת Request ID</td><td>ה־ID נגזר מ־hash של תוכן הבקשה המנורמל.</td><td>הגשה חוזרת מזוהה אוטומטית כ־Replay.</td></tr>
-<tr><td>Retrieve: ידע מקומי</td><td>חיפוש TF-IDF במקום Embeddings או Vector DB.</td><td>5 מסמכים. שקוף, דטרמיניסטי ובלי תלויות.</td></tr>
-<tr><td>Verify &amp; Report</td><td>הדוח נוצר בפקודה נפרדת (<span class="ltr">report</span>) ומכסה את כל הריצות.</td><td>מסמך מסירה אחד לכל התרחישים.</td></tr>
-<tr><td>—</td><td>סטטוס <span class="ltr">FAILED_SAFE</span> מאפשר להריץ Execute שוב בלי אישור חדש.</td><td>התקלה הייתה בתשתית ולא בתוכנית, וה־Idempotency מגן מפני כפילות.</td></tr>
-</table>
-
-<h2>10. Runbook קצר</h2>
-<table>
-<tr><th>מצב</th><th>מה עושים</th></tr>
-<tr><td><span class="pill NEEDS_INFO">NEEDS_INFO</span></td><td>לפנות למבקש עם רשימת השדות החסרים ולהגיש בקשה חדשה ומלאה.</td></tr>
-<tr><td><span class="pill BLOCKED">BLOCKED</span></td><td>לא מבצעים. הסיבה וסעיף ה־Policy מופיעים בדוח. בקשות Admin ו־Injection מעבירים ל־Security.</td></tr>
-<tr><td><span class="pill FAILED_SAFE">FAILED_SAFE</span></td><td>לבדוק ב־Audit (<span class="ltr">python -m app audit &lt;id&gt;</span>) מה נכשל. אחרי תיקון התקלה מריצים <span class="ltr">python -m app execute &lt;id&gt;</span>. אין סכנת כפילות.</td></tr>
-<tr><td><span class="pill VERIFICATION_FAILED">VERIFICATION_FAILED</span></td><td>הפעולה דווחה כמוצלחת אבל לא נמצאה ב־Directory. לבדוק ידנית ב־Directory ולא להריץ שוב לפני הבדיקה.</td></tr>
-<tr><td>איפוס סביבת דמו</td><td class="ltr">python -m app reset</td></tr>
-</table>
-
-<h2>11. מגבלות ידועות</h2>
-<ul>
-  <li>ה־Directory וה־KB הם קבצים מקומיים מדומים. במערכת אמיתית הם יוחלפו ב־API של IdP (למשל Entra ID או Okta) ושל ITSM.</li>
-  <li>זיהוי Prompt Injection מבוסס על דפוסים, ולכן אינו מלא. ההגנה העיקרית היא שה־LLM לא מחליט, וגם ערך admin נחסם ב־Guard ובסכמה.</li>
-  <li>זהות המאשר נמסרת כפרמטר ב־CLI ואין אימות זהות (SSO). במערכת אמיתית האישור יגיע מ־Teams, Slack או ServiceNow עם זהות מאומתת.</li>
-  <li>אין תפוגה אוטומטית של הרשאות. התאריך <span class="ltr">expires_at</span> נשמר, אבל לא מומש job שמסיר הרשאות שפג תוקפן.</li>
-  <li>עיבוד סינכרוני ומשתמש יחיד. SQLite מתאים לדמו בלבד.</li>
-</ul>
-
-<div class="footer">Access Request Assistant · AI Implementer Hands-on Assignment · Prepared for Bynet AI Business Unit</div>
-</main></body></html>
+<footer><div>Access Request Assistant, מטלת AI Implementer עבור Bynet AI Business Unit. המסמך נוצר אוטומטית ב־<span class="en">{{ generated_iso }}</span>.</div></footer>
+</body>
+</html>
