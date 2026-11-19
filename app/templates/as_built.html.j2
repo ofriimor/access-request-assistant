@@ -297,7 +297,7 @@
           <text x="{{x+60}}" y="64" text-anchor="middle" font-size="11.5" fill="{{ '#fde2e1' if gate else '#5e6670' }}">{{ s[1] }}</text>
           {% if not loop.last %}<line x1="{{x+121}}" y1="49" x2="{{x+138}}" y2="49" stroke="#5e6670" stroke-width="1.5" marker-end="url(#ar)"/>{% endif %}
         {% endfor %}
-        {% set comps = [(1,"LLM: Gemini API",llm_model or "gemini-2.5-flash-lite",0),(2,"Read tools","search · read_policy",0),(3,"Guard","deterministic rules",0),(4,"Manager","approve + plan_hash",1),(5,"Write tool","grant_access",2),(6,"Read tool","lookup_user",0)] %}
+        {% set comps = [(1,"LLM: Gemini API",llm_model or "gemini-3.5-flash-lite",0),(2,"Read tools","search · read_policy",0),(3,"Guard","deterministic rules",0),(4,"Manager","approve + plan_hash",1),(5,"Write tool","grant_access",2),(6,"Read tool","lookup_user",0)] %}
         {% for c in comps %}{% set x = 20 + c[0]*140 %}
           <line x1="{{x+60}}" y1="78" x2="{{x+60}}" y2="136" stroke="#c9cdd2" stroke-dasharray="4 3"/>
           <rect x="{{x}}" y="136" width="120" height="54" rx="7" fill="{{ '#fbeceb' if c[3]==1 else ('#c4161c' if c[3]==2 else '#f3f4f6') }}" stroke="{{ '#c4161c' if c[3] else '#f3f4f6' }}"/>
@@ -328,7 +328,7 @@
         <thead><tr><th>רכיב</th><th>קובץ</th><th>אחריות</th></tr></thead>
         <tbody>
           <tr><td class="k">Schemas</td><td><code>app/schemas.py</code></td><td>חוזים לקלט, לפלט ה־LLM ולכל Tool. שדה לא מוכר נדחה.</td></tr>
-          <tr><td class="k">LLM</td><td><code>app/llm.py</code></td><td>חילוץ שדות מהטקסט באמצעות Google Gemini API (<code>{{ llm_model or "gemini-2.5-flash-lite" }}</code>). הטקסט מוגדר כ־Untrusted, הפלט עובר Validation עם Retry אחד, ושגיאות HTTP זמניות מקבלות Retry מוגבל.</td></tr>
+          <tr><td class="k">LLM</td><td><code>app/llm.py</code></td><td>חילוץ שדות מהטקסט באמצעות Google Gemini API (<code>{{ llm_model or "gemini-3.5-flash-lite" }}</code>). הטקסט מוגדר כ־Untrusted, הפלט עובר Validation עם Retry אחד, ושגיאות HTTP זמניות מקבלות Retry מוגבל.</td></tr>
           <tr><td class="k">Guard</td><td><code>app/guard.py</code></td><td>החלטה דטרמיניסטית: מותר, חסר מידע או חסום. כולל זיהוי Prompt Injection.</td></tr>
           <tr><td class="k">State machine</td><td><code>app/state.py</code></td><td>סטטוסים ומעברים מותרים בלבד. SQLite, כולל טבלת Idempotency.</td></tr>
           <tr><td class="k">Engine</td><td><code>app/engine.py</code></td><td>מנהל את שבעת השלבים, את שער האישור, את ה־Retry ואת האימות שאחרי הביצוע.</td></tr>
@@ -353,7 +353,7 @@
         <thead><tr><th></th><th>דרישה</th><th>מימוש</th></tr></thead>
         <tbody>
           <tr><td class="num">1</td><td class="k"><span class="mark">✓</span>קלט ו־Validation</td><td>JSON שנבדק מול <code>AccessRequestInput</code>. שגיאה מציינת את השדה, ולא נוצרת רשומה.</td></tr>
-          <tr><td class="num">2</td><td class="k"><span class="mark">✓</span>שימוש ב־LLM</td><td>Google Gemini API (<code>{{ llm_model or "gemini-2.5-flash-lite" }}</code>) מחלץ intent, מערכת, רמה, משך, הצדקה ופערים.</td></tr>
+          <tr><td class="num">2</td><td class="k"><span class="mark">✓</span>שימוש ב־LLM</td><td>Google Gemini API (<code>{{ llm_model or "gemini-3.5-flash-lite" }}</code>) מחלץ intent, מערכת, רמה, משך, הצדקה ופערים.</td></tr>
           <tr><td class="num">3</td><td class="k"><span class="mark">✓</span>Knowledge Retrieval</td><td>5 מסמכי Policy, שלוש ההתאמות הטובות עם מזהה וציון.</td></tr>
           <tr><td class="num">4</td><td class="k"><span class="mark">✓</span>שני Tools לפחות</td><td>3 לקריאה, 1 לכתיבה.</td></tr>
           <tr><td class="num">5</td><td class="k"><span class="mark">✓</span>State</td><td>SQLite: סטטוס, היסטוריה, החלטות, תוצאות Tools, אישור ואימות.</td></tr>

@@ -27,7 +27,7 @@ copy .env.example .env
 ```
 GEMINI_API_KEY=המפתח-שלכם
 LLM_PROVIDER=gemini
-LLM_MODEL=gemini-2.5-flash-lite
+LLM_MODEL=gemini-3.5-flash-lite
 ```
 המערכת טוענת את `.env` אוטומטית בכל הרצה, ואין צורך להגדיר משתנים בטרמינל. הקובץ מופיע ב־`.gitignore`, כך שהמפתח נשאר במחשב ולא עולה ל־GitHub. ערך שמוגדר בטרמינל (`$env:...`) גובר על הקובץ.
 
@@ -119,7 +119,7 @@ evidence/                תוצרי ריצה ובדיקות
 
 ## כלים ששימשו בפיתוח
 - **Python, Pydantic, Jinja2, pytest, SQLite** (ספריית התקן).
-- **LLM בזמן ריצה:** Google Gemini API בלבד, מודל `gemini-2.5-flash-lite`.
+- **LLM בזמן ריצה:** Google Gemini API בלבד, מודל `gemini-3.5-flash-lite`.
 - **כלי AI לפיתוח:** Claude (Anthropic) שימש ליצירת שלד הקוד, הבדיקות והתיעוד. עברתי על כל רכיב, הרצתי והתאמתי.
 
 ## תיעוד ותוצרי מסירה

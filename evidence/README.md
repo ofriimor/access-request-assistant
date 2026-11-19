@@ -8,7 +8,7 @@
 | `audit.jsonl` | Full audit trail of that run: steps, LLM extraction, tool calls, approvals, errors, final status | same run |
 
 The automated tests use an isolated FakeLLM and do not call the Gemini API.
-`as_built.html` and `audit.jsonl` come from a live run against Gemini (`gemini-2.5-flash-lite`).
+`as_built.html` and `audit.jsonl` come from a live run against Gemini (`gemini-3.5-flash-lite`).
 
 To regenerate everything (requires `GEMINI_API_KEY` in `.env`):
 
