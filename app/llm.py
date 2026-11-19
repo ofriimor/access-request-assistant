@@ -87,7 +87,8 @@ def _post_json(url: str, headers: dict, body: dict, timeout: int = 60) -> dict:
                 return json.loads(response.read())
         except urllib.error.HTTPError as exc:
             if exc.code not in retryable or attempt == max_attempts - 1:
-                raise LLMServiceError(f"LLM API HTTP {exc.code}") from None
+                hint = " (model not found or not available for this key - check LLM_MODEL)" if exc.code == 404 else ""
+                raise LLMServiceError(f"LLM API HTTP {exc.code}{hint}") from None
             # Honor a small numeric Retry-After, otherwise exponential backoff.
             retry_after = exc.headers.get("Retry-After", "") if exc.headers else ""
             delay = min(float(retry_after), 15) if retry_after.isdigit() else min(2 ** (attempt + 1), 15)
@@ -106,9 +107,16 @@ class GeminiLLM:
 
     def __init__(self):
         self.key = os.environ["GEMINI_API_KEY"]
-        self.model = os.environ.get("LLM_MODEL", "gemini-2.5-flash-lite").strip()
+        self.model = os.environ.get("LLM_MODEL", "gemini-3.5-flash-lite").strip()
         if not self.model or "/" in self.model or ":" in self.model:
-            raise ValueError("LLM_MODEL must be a model ID such as gemini-2.5-flash-lite")
+            raise ValueError("LLM_MODEL must be a model ID such as gemini-3.5-flash-lite")
+
+    def _generation_config(self) -> dict:
+        config = {"responseMimeType": "application/json"}
+        # Sampling parameters are deprecated for Gemini 3+; keep temperature=0 only for older models.
+        if self.model.startswith(("gemini-1", "gemini-2")):
+            config["temperature"] = 0
+        return config
 
     def complete(self, system: str, user: str) -> str:
         from urllib.parse import quote
@@ -117,7 +125,7 @@ class GeminiLLM:
         out = _post_json(url, {"x-goog-api-key": self.key}, {
             "systemInstruction": {"parts": [{"text": system}]},
             "contents": [{"role": "user", "parts": [{"text": user}]}],
-            "generationConfig": {"temperature": 0, "responseMimeType": "application/json"},
+            "generationConfig": self._generation_config(),
         })
         try:
             parts = out["candidates"][0]["content"]["parts"]

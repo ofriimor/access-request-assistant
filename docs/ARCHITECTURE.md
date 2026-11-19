@@ -3,7 +3,7 @@
 ```mermaid
 flowchart TD
     A[CLI / JSON Request] --> B[Intake: Pydantic validation + request ID]
-    B --> C[Understand: Gemini API extraction<br/>gemini-2.5-flash-lite]
+    B --> C[Understand: Gemini API extraction<br/>gemini-3.5-flash-lite]
     C --> D[Structured Understanding schema]
     D --> E[Retrieve: policy search / policy read / user lookup]
     E --> F[Deterministic Guard + ActionPlan]
@@ -37,7 +37,7 @@ flowchart TD
 | --- | --- |
 | `app/__main__.py` | CLI and interactive demo |
 | `app/schemas.py` | Pydantic contracts and input validation |
-| `app/llm.py` | Google Gemini API adapter (`gemini-2.5-flash-lite`), bounded HTTP retry, extraction schema parsing |
+| `app/llm.py` | Google Gemini API adapter (`gemini-3.5-flash-lite`), bounded HTTP retry, extraction schema parsing |
 | `app/tools.py` | Local policy search, read, user lookup, write tool |
 | `app/guard.py` | Deterministic policy evaluation, injection heuristics |
 | `app/engine.py` | Orchestration, tool allowlist, approval gate, retries, verification |
