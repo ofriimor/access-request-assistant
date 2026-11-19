@@ -37,7 +37,8 @@ Gemini הוא הספק היחיד בזמן ריצה, ואין Mock או ספק �
 ```bash
 python demo.py            # בדיקות, כל התרחישים ודוח As-Built
 python demo.py --pause    # עצירה בין התרחישים, לדמו חי
-python demo.py --pause --require-real-llm  # מומלץ לראיון: מסרב להציג Mock כ-LLM אמיתי
+python demo.py --pause --require-real-llm  # הרצה מול Gemini אמיתי, עם עצירה בין התרחישים
+python demo.py --require-real-llm --save-evidence  # שומר את תוצרי הריצה בתיקייה evidence/
 ```
 התוצרים:
 - `reports/as_built.html`: מסמך המסירה
@@ -99,7 +100,9 @@ app/audit.py     Audit log (JSONL)
 app/report.py    יצירת As-Built HTML
 demo.py          כל התרחישים בפקודה אחת
 tests/           בדיקות אוטומטיות
-docs/LEARNING_GUIDE.md   הסבר מושגים וקוד
+docs/ARCHITECTURE.md     תרשים ארכיטקטורה ו־Design vs. As-Built
+docs/RUNBOOK.md          הפעלה, תפעול וטיפול בתקלות
+evidence/                תוצרי ריצה ובדיקות
 ```
 
 ## לוגו
@@ -117,11 +120,12 @@ docs/LEARNING_GUIDE.md   הסבר מושגים וקוד
 ## כלים ששימשו בפיתוח
 - **Python, Pydantic, Jinja2, pytest, SQLite** (ספריית התקן).
 - **LLM בזמן ריצה:** Google Gemini API בלבד, מודל `gemini-2.5-flash-lite`.
-- **כלי AI לפיתוח:** Claude (Anthropic) שימש ליצירת שלד הקוד, הבדיקות והתיעוד. עברתי על כל רכיב, הרצתי והתאמתי. *(עדכני את הסעיף לפי מה שעשית בפועל.)*
+- **כלי AI לפיתוח:** Claude (Anthropic) שימש ליצירת שלד הקוד, הבדיקות והתיעוד. עברתי על כל רכיב, הרצתי והתאמתי.
 
-## הכנה להצגה ולמסירה
+## תיעוד ותוצרי מסירה
 - [תרשים ארכיטקטורה ומפת רכיבים](docs/ARCHITECTURE.md)
-- [Runbook לדמו של 10–15 דקות, שאלות ותוצרי מסירה](docs/INTERVIEW_RUNBOOK.md)
-- `python demo.py --require-real-llm` מפיק תוצאות ריצה חדשות עם Gemini: `reports/as_built.html`, `runtime/audit.jsonl` ו־`runtime/test_results.xml`. אלה ההוכחות להציג. הקבצים הישנים שנוצרו במצב offline הוסרו מ־`evidence/`.
+- [Runbook: הפעלה, תרחישי דמו וטיפול בתקלות](docs/RUNBOOK.md)
+- [Evidence: תוצאות בדיקות, Audit ודוח As-Built](evidence/README.md)
+- `python demo.py --require-real-llm` מפיק תוצאות ריצה חדשות עם Gemini: `reports/as_built.html`, `runtime/audit.jsonl` ו־`runtime/test_results.xml`. עותק של תוצרי הריצה נשמר בתיקייה `evidence/`.
 - בדיקות ה־pytest אינן דורשות מפתח API ואינן מוכיחות קישוריות ל־API אמיתי. כדי להוכיח זאת, צריך להריץ את הדמו עם מפתח תקף בסביבה שלך.
 - מגבלות: אין SSO או אישור מנהל מאומת, אין חיבור ל־IdP אמיתי ואין הסרת הרשאות אוטומטית בתום התוקף.
