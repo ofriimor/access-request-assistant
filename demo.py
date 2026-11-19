@@ -49,6 +49,8 @@ def main() -> None:
     ap.add_argument("--skip-tests", action="store_true")
     ap.add_argument("--require-real-llm", action="store_true",
                     help="Require the real Gemini provider (always enforced)")
+    ap.add_argument("--save-evidence", action="store_true",
+                    help="Copy the run's report, audit log and test results into evidence/")
     args = ap.parse_args()
     PAUSE = args.pause
 
@@ -126,8 +128,18 @@ def main() -> None:
     print(f"  Grants for u1002 in directory: {len(grants)}  (expected 1)")
 
     title("REPORT")
-    print(f"  As-Built: {generate(eng)}")
+    report_path = generate(eng)
+    print(f"  As-Built: {report_path}")
     print(f"  Audit   : {eng.audit.path}")
+
+    if args.save_evidence:
+        import shutil
+        ev = PROJECT_ROOT / "evidence"
+        ev.mkdir(exist_ok=True)
+        for src in (Path(report_path), eng.audit.path, PROJECT_ROOT / "runtime" / "test_results.xml"):
+            if Path(src).exists():
+                shutil.copy(src, ev / Path(src).name)
+        print(f"  Evidence copied to: {ev}")
 
 
 if __name__ == "__main__":
