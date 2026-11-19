@@ -31,4 +31,4 @@ tests/test_llm_providers.py::test_engine_stops_before_action_when_llm_service_fa
 tests/test_llm_providers.py::test_explicit_gemini_requires_key PASSED    [ 93%]
 tests/test_llm_providers.py::test_gemini_response_parsing PASSED         [ 96%]
 tests/test_llm_providers.py::test_gemini_empty_response_fails_safe PASSED [100%]
-============================== 33 passed in 0.38s ==============================
+============================== 33 passed in 0.37s ==============================
