@@ -143,8 +143,10 @@ def run_scenario(eng: Engine, ref: str, *, reject: bool = False, failure: str | 
             final = eng.status(rid)["status"]
 
     ok = decision == expected
-    out(f"  Expected decision: {expected}   Got: {decision}   {'✓ as expected' if ok else '✗ DIFFERENT'}"
-        + (f"   Final: {final}" if final != decision else "") + "\n")
+    out("  ─────────────────────────────────────────────────────────────")
+    out(f"  System decision : {decision:<18} expected {expected:<18} {'✓' if ok else '✗ DIFFERENT'}")
+    out(f"  Final status    : {final}" + ("   (after the manager's decision)" if final != decision else ""))
+    out("")
     return {"name": scenarios.name_of(path), "expected": expected, "decision": decision,
             "final": final, "ok": ok}
 
@@ -168,8 +170,7 @@ def run_all_scenarios(eng: Engine, pause: bool = False, save_evidence: bool = Fa
 
     print(f"\n{'═' * 72}\n  SUMMARY\n{'═' * 72}")
     for r in results:
-        final = f"-> {r['final']}" if r["final"] != r["decision"] else ""
-        print(f"  {'✓' if r['ok'] else '✗'}  {r['name']:<48} {r['decision']:<18} {final}")
+        print(f"  {'✓' if r['ok'] else '✗'}  {r['name']:<48} decision {r['decision']:<18} final {r['final']}")
     passed = sum(r["ok"] for r in results)
     print(f"\n  {passed}/{len(results)} scenarios reached the expected decision")
     report = generate(eng)
