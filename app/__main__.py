@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # Windows console: box/check characters
@@ -150,7 +151,8 @@ def run_scenario(eng: Engine, ref: str, *, reject: bool = False, failure: str | 
             "final": final, "ok": ok}
 
 
-def run_all_scenarios(eng: Engine, pause: bool = False, save_evidence: bool = False) -> int:
+def run_all_scenarios(eng: Engine, pause: bool = False, save_evidence: bool = False,
+                      delay: float = 4.0) -> int:
     """Every scenario, live and end to end, then one As-Built report for the whole run.
     The directory is restored before each scenario, so they do not affect each other."""
     import shutil
@@ -166,6 +168,8 @@ def run_all_scenarios(eng: Engine, pause: bool = False, save_evidence: bool = Fa
             print(f"\n{'═' * 72}\n  {n}/{len(paths)}  {scenarios.name_of(path)}\n{'═' * 72}")
         shutil.copy(original, eng.tools.directory_path)
         results.append(run_scenario(eng, path))
+        if delay and not pause and n < len(paths) and results[-1]["decision"] != "INPUT_REJECTED":
+            time.sleep(delay)          # stay under the API's requests-per-minute quota
 
     print(f"\n{'═' * 72}\n  SUMMARY\n{'═' * 72}")
     for r in results:
@@ -229,6 +233,8 @@ def main(argv=None) -> int:
     sc.add_argument("--simulate-failure", choices=["timeout", "flaky"], default=None)
     sc.add_argument("--pause", action="store_true", help="wait for Enter between steps")
     sc.add_argument("--save-evidence", action="store_true")
+    sc.add_argument("--delay", type=float, default=4.0,
+                    help="seconds between scenarios in --all, to respect the API rate limit (default 4)")
     for name in ("approve", "reject"):
         p = sub.add_parser(name); p.add_argument("rid"); p.add_argument("--by", required=True)
         p.add_argument("--reason", default="")
@@ -262,7 +268,7 @@ def main(argv=None) -> int:
         if args.cmd == "submit":
             show(eng.submit(scenarios.request(args.file)))
         elif args.cmd == "scenario" and args.all:
-            return run_all_scenarios(eng, args.pause, args.save_evidence)
+            return run_all_scenarios(eng, args.pause, args.save_evidence, args.delay)
         elif args.cmd == "scenario":
             result = run_scenario(eng, args.name, reject=args.reject,
                                   failure=args.simulate_failure, pause=args.pause)

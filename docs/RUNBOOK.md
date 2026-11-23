@@ -72,7 +72,8 @@ To add a case, add a JSON file to the right folder; no code change is needed.
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | Startup error about `GEMINI_API_KEY` | Key missing / `.env` not created | Create `.env` from `.env.example` |
-| `LLM API HTTP 429/5xx` → FAILED_SAFE | Provider quota or outage (3 bounded retries done) | Wait, then resubmit |
+| `LLM API HTTP 429` → FAILED_SAFE | Requests-per-minute quota still exceeded after 5 attempts (waits of 10–40 s) | Wait a minute, then resubmit; for `scenario --all` raise `--delay` (default 4 s) |
+| `LLM API HTTP 5xx` → FAILED_SAFE | Provider outage (3 bounded retries done) | Wait, then resubmit |
 | `LLM API connection failed` | Network / proxy | Check connectivity; resubmit |
 | `not the required approver` / `cannot approve it` | Wrong approver, or the approver submitted the request | Use the approver shown in `status` |
 | `plan changed after approval` | Stored plan no longer matches the approved hash | Re-approve |
