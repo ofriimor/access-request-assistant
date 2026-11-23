@@ -49,9 +49,21 @@ def gemini_settings() -> dict:
     return {k: os.environ.get(k) or env.get(k) for k in LLM_SETTINGS if os.environ.get(k) or env.get(k)}
 
 
-def has_gemini_key() -> bool:
+def gemini_key_problem() -> str | None:
+    """Why the real Gemini key cannot be used, or None if it looks fine."""
+    path = PROJECT_ROOT / ".env"
     key = gemini_settings().get("GEMINI_API_KEY", "")
-    return bool(key) and not key.startswith("paste-")
+    if not key:
+        if not path.exists():
+            return f"no .env file at {path} - create it from .env.example and add GEMINI_API_KEY"
+        return ".env exists but has no GEMINI_API_KEY line"
+    if key.startswith("paste-"):
+        return ".env still contains the placeholder - paste your real key after GEMINI_API_KEY="
+    return None
+
+
+def has_gemini_key() -> bool:
+    return gemini_key_problem() is None
 
 
 class SessionCachedGemini:
@@ -76,8 +88,9 @@ class SessionCachedGemini:
 @pytest.fixture(scope="session")
 def gemini():
     """One real Gemini client for the whole test run."""
-    if not has_gemini_key():
-        pytest.skip("GEMINI_API_KEY is not set in .env - tests that need Gemini were skipped")
+    problem = gemini_key_problem()
+    if problem:
+        pytest.skip(f"Gemini key not usable: {problem}")
     from app.llm import GeminiLLM
     with pytest.MonkeyPatch.context() as mp:
         for k, v in gemini_settings().items():
