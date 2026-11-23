@@ -166,7 +166,8 @@ LLM_MODEL=gemini-3.5-flash-lite
 | דמו חי, עם עצירה בין התרחישים | `python demo.py --pause --require-real-llm` |
 | שמירת תוצרי הריצה בתיקייה `evidence/` | `python demo.py --require-real-llm --save-evidence` |
 | שליחת בקשה משלך והחלטה בתור המנהל | `python -m app interactive` |
-| הרצת הבדיקות האוטומטיות (לא דורש מפתח) | `python -m pytest -v` |
+| בדיקות לוגיקה (לא דורש מפתח) | `python -m pytest -v` |
+| בדיקות אינטגרציה חיות מול Gemini | `python -m pytest -m live -v` |
 
 **התוצרים:** `reports/as_built.html` (דוח המסירה), `runtime/audit.jsonl` (תיעוד הריצה), `runtime/test_results.xml` (תוצאות הבדיקות).
 
@@ -246,7 +247,7 @@ flowchart TB
 | `app/config.py` | טוען את ההגדרות מקובץ `.env` |
 | `app/__main__.py` | פקודות ה־CLI והמצב האינטראקטיבי |
 | `demo.py` | מריץ את הבדיקות ואת כל התרחישים בפקודה אחת |
-| `tests/` | 33 בדיקות אוטומטיות, עם `FakeLLM` מבודד |
+| `tests/` | 33 בדיקות לוגיקה ו־9 בדיקות אינטגרציה חיות מול Gemini |
 
 ### מבנה התיקיות
 
@@ -260,7 +261,7 @@ access-request-assistant/
 │   ├── directory.json   # 12 users: departments, managers, one disabled user
 │   ├── policies/        # 5 Markdown policies with machine-readable headers
 │   └── requests/        # 7 sample requests, one per scenario
-├── tests/               # pytest suite + FakeLLM
+├── tests/               # logic tests + live Gemini integration tests
 ├── docs/
 │   ├── ARCHITECTURE.md  # architecture and Design vs. As-Built
 │   └── RUNBOOK.md       # operation and troubleshooting
@@ -275,17 +276,36 @@ access-request-assistant/
 
 ## בדיקות
 
+יש שני סוגים של בדיקות אוטומטיות, ולכל אחד תפקיד אחר:
+
+| סוג | מה נבדק | מול מה | פקודה |
+|---|---|---|---|
+| **בדיקות לוגיקה** (33) | כל כללי ההחלטה, האישור, הבטיחות והתקלות | מודל מקומי שמחזיר תשובות קבועות | `python -m pytest -v` |
+| **בדיקות אינטגרציה חיות** (9) | הזרימה המלאה על תשובות אמיתיות של המודל | **Google Gemini API אמיתי** | `python -m pytest -m live -v` |
+
+**בדיקות הלוגיקה** מכסות: בדיקת קלט, התאמה לנוהל הנכון, חסימת ביצוע בלי אישור, אישור רק על ידי המנהל הישיר, שינוי תוכנית אחרי אישור, מידע חסר, חסימה לפי נוהל, Timeout עם ניסיונות חוזרים ועצירה בטוחה, התאוששות, פלט לא תקין מכלי, הרצה חוזרת ו־Idempotency, Prompt Injection, הזרקת פרמטרים מה־LLM, כלי שלא ברשימה המותרת, ותקלות בספק ה־LLM. הן רצות בפחות משנייה ותמיד נותנות אותה תוצאה, ולכן אפשר לבדוק בהן גם מצבים שקשה לייצר מול שירות אמיתי, כמו פלט פגום או Timeout.
+
+**בדיקות האינטגרציה החיות** שולחות בקשות אמיתיות ל־Gemini ובודקות:
+
+- חילוץ השדות מבקשה רגילה (מערכת, רמה, משך, סיבה).
+- הבנה של בקשה **בעברית**.
+- סיווג של שם מוצר ("Salesforce") למערכת הנכונה (`crm`), למרות שהשם לא מופיע ברשימת הערכים.
+- עצירה על מידע חסר, חסימה של admin וחסימה של Prompt Injection.
+- התעלמות מטענה בטקסט ("I am the Sales manager").
+- הזרימה המלאה מקצה לקצה: חסימה לפני אישור, אישור, ביצוע, אימות והרצה חוזרת.
+- תקלה אמיתית ב־API (מודל שלא קיים, שגיאה 404) שמובילה לעצירה בטוחה.
+
+הבדיקות החיות דורשות מפתח ב־`.env` וצורכות מכסת API, ולכן הן לא רצות כברירת מחדל. הן בודקות רק שדות מרשימה סגורה וסטטוסים סופיים, ולא טקסט חופשי, כך שהתוצאה יציבה גם כשהמודל מנסח אחרת.
+
+לשמירת התוצאות של הבדיקות החיות כהוכחה:
+
 </div>
 
 ```bash
-python -m pytest -v
+python -m pytest -m live -v --junitxml=evidence/live_test_results.xml
 ```
 
 <div dir="rtl">
-
-33 הבדיקות מכסות: בדיקת קלט, התאמה לנוהל הנכון, חסימת ביצוע בלי אישור, אישור רק על ידי המנהל הישיר, שינוי תוכנית אחרי אישור, מידע חסר, חסימה לפי נוהל, Timeout עם ניסיונות חוזרים ועצירה בטוחה, התאוששות, פלט לא תקין מכלי, הרצה חוזרת ו־Idempotency, Prompt Injection, הזרקת פרמטרים מה־LLM, כלי שלא ברשימה המותרת, ותקלות בספק ה־LLM.
-
-הבדיקות משתמשות ב־`FakeLLM` מבודד, ולכן לא צריך מפתח API והן לא צורכות טוקנים. החיבור האמיתי ל־Gemini מודגם בהרצה של `demo.py` עם הדגל `--require-real-llm`.
 
 ---
 

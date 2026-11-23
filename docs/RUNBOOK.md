@@ -5,7 +5,8 @@
 1. Python 3.10+: `python -m pip install -r requirements.txt`
 2. `copy .env.example .env` (Linux/macOS: `cp .env.example .env`) and set `GEMINI_API_KEY`.
    `.env` is git-ignored; never commit keys.
-3. Sanity check: `python -m pytest -q` (no API key needed; uses an isolated FakeLLM).
+3. Sanity check: `python -m pytest -q` (logic tests; no API key needed).
+4. Live check against Gemini: `python -m pytest -m live -v` (needs the key; uses API quota).
 
 ## 2. Run
 
