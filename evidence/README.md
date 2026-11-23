@@ -6,6 +6,8 @@
 | `pytest_output.txt` | Per-test PASS/FAIL list | `python -m pytest -v` |
 | `as_built.html` | As-Built handover report of a full run | `python demo.py --require-real-llm --save-evidence` |
 | `audit.jsonl` | Full audit trail of that run: steps, LLM extraction, tool calls, approvals, errors, final status | same run |
+| `scenarios_as_built.html` | As-Built report of all 34 scenarios run live, end to end, with expected vs. actual decisions | `python -m app scenario --all --save-evidence` |
+| `scenarios_audit.jsonl` | Audit trail of that scenario run | same run |
 
 All tests call the real Gemini API; only failures (tool timeouts, a compromised model, network outages) are simulated.
 Generate the files with a valid `GEMINI_API_KEY` in `.env`.

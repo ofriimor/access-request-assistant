@@ -3,7 +3,9 @@ CLI:  python -m app <command>
 
   reset                                  fresh runtime (directory copy, empty state + audit)
   scenario                               list all scenarios (data/scenarios/)
-  scenario <name>                        run one scenario and compare it to its expected result
+  scenario <name>                        run one scenario live, end to end, and compare to the expected result
+           [--reject] [--simulate-failure timeout] [--pause]
+  scenario --all [--pause] [--save-evidence]   run every scenario end to end + As-Built report
   submit  <name | file.json>             steps 1-4, stops for approval
   approve <REQ-id> --by <user_id>        step 5 (human approval)
   reject  <REQ-id> --by <user_id> --reason "..."
@@ -68,32 +70,118 @@ def list_scenarios() -> None:
         for path in scenarios.all_scenarios():
             if path.parent.name == group:
                 print(f"    {scenarios.name_of(path):<48} {scenarios.load(path)['description']}")
-    print("\n  Run one:  python -m app scenario <name>      e.g.  python -m app scenario allow/00_happy_path\n")
+    print("\n  Run one:  python -m app scenario <name>      e.g.  python -m app scenario allow/00_happy_path")
+    print("  Run all:  python -m app scenario --all       (end to end, then the As-Built report)\n")
 
 
-def run_scenario(eng: Engine, ref: str) -> int:
-    case = scenarios.load(ref)
+def _step(text: str, pause: bool) -> None:
+    if pause:
+        input(f"\n  [Enter] {text} ")
+    else:
+        print(f"\n  ▶ {text}")
+
+
+def run_scenario(eng: Engine, ref: str, *, reject: bool = False, failure: str | None = None,
+                 pause: bool = False, quiet: bool = False) -> dict:
+    """Run one scenario live from start to finish.
+
+    1-4  the request goes through Intake, Gemini, Retrieve and the Guard
+    then, if the decision is ALLOW:
+         execute before approval (must be blocked) -> manager approves (or rejects)
+         -> execute (optionally with a simulated tool failure, then a re-run) -> verify
+    Returns the expected decision, the decision reached and the final status."""
+    out = print if not quiet else (lambda *a, **k: None)
+    show_ = show if not quiet else (lambda s: None)
+    path = scenarios.resolve(ref)
+    case = scenarios.load(path)
     expected = case["expect"].get("status", "?")
-    print(f"\n  Scenario: {scenarios.name_of(scenarios.resolve(ref))}")
-    print(f"  About   : {case['description']}")
-    print(f"  Text    : {case['request'].get('request_text', '')}")
+    out(f"\n  Scenario: {scenarios.name_of(path)}")
+    out(f"  About   : {case['description']}")
+    out(f"  Text    : {case['request'].get('request_text', '')}")
+
     try:
         state = eng.submit(case["request"])
     except IntakeValidationError as err:
-        got = "INPUT_REJECTED"
-        print("\n  ✗ INPUT REJECTED (nothing was created, the model was not called):")
+        out("\n  ✗ INPUT REJECTED (nothing was created, the model was not called):")
         for x in err.errors:
-            print(f"    - {x}")
+            out(f"    - {x}")
+        decision = final = "INPUT_REJECTED"
     else:
-        got = state["status"]
-        show(state)
+        show_(state)
         und = state.get("understanding") or {}
         if und:
-            print(f"  Gemini understood: system={und.get('system')} level={und.get('access_level')} "
-                  f"duration={und.get('duration_days')} intent={und.get('intent')}")
-    ok = got == expected
-    print(f"\n  Expected: {expected}   Got: {got}   {'✓ as expected' if ok else '✗ DIFFERENT'}\n")
-    return 0 if ok else 1
+            out(f"  Gemini understood: system={und.get('system')} level={und.get('access_level')} "
+                f"duration={und.get('duration_days')} intent={und.get('intent')}")
+        decision = final = state["status"]
+
+        if state["status"] == "AWAITING_APPROVAL":
+            rid, approver = state["request_id"], state["approver_required"]
+            _step("execute BEFORE approval (must be blocked)", pause)
+            try:
+                eng.execute(rid)
+                out("  ✗ executed without approval - this must never happen")
+            except ApprovalRequired as err:
+                out(f"  ✓ BLOCKED: {err}")
+            _step(f"manager {approver} {'rejects' if reject else 'approves'}", pause)
+            state = eng.decide(rid, approver, not reject, "scenario run")
+            show_(state)
+            if reject:
+                _step("execute after the rejection (must be blocked)", pause)
+                try:
+                    eng.execute(rid)
+                except ApprovalRequired as err:
+                    out(f"  ✓ BLOCKED: {err}")
+            else:
+                if failure:
+                    _step(f"execute with a simulated tool failure ({failure})", pause)
+                    show_(eng.execute(rid, simulate_failure=failure))
+                    _step("the tool is back: execute again (same approval, no duplicate)", pause)
+                else:
+                    _step("execute and verify", pause)
+                state = eng.execute(rid)
+                show_(state)
+            final = eng.status(rid)["status"]
+
+    ok = decision == expected
+    out(f"  Expected decision: {expected}   Got: {decision}   {'✓ as expected' if ok else '✗ DIFFERENT'}"
+        + (f"   Final: {final}" if final != decision else "") + "\n")
+    return {"name": scenarios.name_of(path), "expected": expected, "decision": decision,
+            "final": final, "ok": ok}
+
+
+def run_all_scenarios(eng: Engine, pause: bool = False, save_evidence: bool = False) -> int:
+    """Every scenario, live and end to end, then one As-Built report for the whole run.
+    The directory is restored before each scenario, so they do not affect each other."""
+    import shutil
+    from .engine import PROJECT_ROOT
+    from .report import generate
+    original = PROJECT_ROOT / "data" / "directory.json"
+    paths = scenarios.all_scenarios()
+    results = []
+    for n, path in enumerate(paths, 1):
+        if pause:
+            input(f"\n[Enter] scenario {n}/{len(paths)}: {scenarios.name_of(path)} ")
+        else:
+            print(f"\n{'═' * 72}\n  {n}/{len(paths)}  {scenarios.name_of(path)}\n{'═' * 72}")
+        shutil.copy(original, eng.tools.directory_path)
+        results.append(run_scenario(eng, path))
+
+    print(f"\n{'═' * 72}\n  SUMMARY\n{'═' * 72}")
+    for r in results:
+        final = f"-> {r['final']}" if r["final"] != r["decision"] else ""
+        print(f"  {'✓' if r['ok'] else '✗'}  {r['name']:<48} {r['decision']:<18} {final}")
+    passed = sum(r["ok"] for r in results)
+    print(f"\n  {passed}/{len(results)} scenarios reached the expected decision")
+    report = generate(eng)
+    print(f"  As-Built: {report}\n  Audit   : {eng.audit.path}")
+    if save_evidence:
+        ev = PROJECT_ROOT / "evidence"
+        ev.mkdir(exist_ok=True)
+        shutil.copy(report, ev / "scenarios_as_built.html")
+        shutil.copy(eng.audit.path, ev / "scenarios_audit.jsonl")
+        print(f"  Evidence: {ev / 'scenarios_as_built.html'}, {ev / 'scenarios_audit.jsonl'}")
+    print()
+    return 0 if passed == len(results) else 1
 
 
 def interactive(eng: Engine) -> None:
@@ -134,7 +222,13 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("reset")
     s = sub.add_parser("submit"); s.add_argument("file", help="scenario name or path to a JSON file")
-    sc = sub.add_parser("scenario"); sc.add_argument("name", nargs="?")
+    sc = sub.add_parser("scenario", help="list, run one, or run all scenarios end to end")
+    sc.add_argument("name", nargs="?")
+    sc.add_argument("--all", action="store_true", help="run every scenario and build the As-Built report")
+    sc.add_argument("--reject", action="store_true", help="the manager rejects instead of approving")
+    sc.add_argument("--simulate-failure", choices=["timeout", "flaky"], default=None)
+    sc.add_argument("--pause", action="store_true", help="wait for Enter between steps")
+    sc.add_argument("--save-evidence", action="store_true")
     for name in ("approve", "reject"):
         p = sub.add_parser(name); p.add_argument("rid"); p.add_argument("--by", required=True)
         p.add_argument("--reason", default="")
@@ -148,9 +242,11 @@ def main(argv=None) -> int:
 
     if args.cmd == "reset":
         reset_runtime(); print("runtime reset."); return 0
-    if args.cmd == "scenario" and not args.name:
+    if args.cmd == "scenario" and args.all:
+        reset_runtime()
+    elif args.cmd == "scenario" and not args.name:
         list_scenarios(); return 0
-    if args.cmd in ("submit", "scenario"):
+    if args.cmd == "submit" or (args.cmd == "scenario" and not args.all):
         try:
             scenarios.resolve(args.file if args.cmd == "submit" else args.name)
         except FileNotFoundError as err:
@@ -165,8 +261,12 @@ def main(argv=None) -> int:
     try:
         if args.cmd == "submit":
             show(eng.submit(scenarios.request(args.file)))
+        elif args.cmd == "scenario" and args.all:
+            return run_all_scenarios(eng, args.pause, args.save_evidence)
         elif args.cmd == "scenario":
-            return run_scenario(eng, args.name)
+            result = run_scenario(eng, args.name, reject=args.reject,
+                                  failure=args.simulate_failure, pause=args.pause)
+            return 0 if result["ok"] else 1
         elif args.cmd in ("approve", "reject"):
             show(eng.decide(args.rid, args.by, args.cmd == "approve", args.reason))
         elif args.cmd == "execute":

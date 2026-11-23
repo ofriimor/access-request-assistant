@@ -16,16 +16,24 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from .audit import now_iso
 from .engine import PROJECT_ROOT
 
-# Names of the demo scenarios (by ticket). Any other request is shown as "interactive".
-SCENARIOS = {
-    "TCK-1001": "מסלול תקין, כולל Replay",
-    "TCK-1002": "מידע חסר",
-    "TCK-1003": "חסימה לפי Policy: בקשת admin",
-    "TCK-1004": "חסימת Prompt Injection",
-    "TCK-1005": "דחייה ע״י המנהל",
-    "TCK-1006": "כשל Tool והתאוששות",
-    "TCK-1007": "קלט לא תקין",
-}
+def _scenario_index() -> tuple[dict, dict]:
+    """Map each request back to the scenario file it came from (data/scenarios/).
+    Valid requests are matched by request ID, intake rejections by their text."""
+    from pydantic import ValidationError
+    from . import scenarios
+    from .engine import make_request_id
+    from .schemas import AccessRequestInput
+    by_id, by_text = {}, {}
+    for path in scenarios.all_scenarios():
+        case = scenarios.load(path)
+        info = {"name": scenarios.name_of(path), "description": case["description"],
+                "expected": case["expect"].get("status")}
+        try:
+            by_id[make_request_id(AccessRequestInput.model_validate(case["request"]))] = info
+        except ValidationError:
+            by_text[case["request"].get("request_text", "")] = info
+    return by_id, by_text
+
 
 STATUS_HE = {
     "COMPLETED": "הושלם ואומת", "BLOCKED": "נחסם", "NEEDS_INFO": "חסר מידע",
@@ -81,14 +89,24 @@ def _local_time(ts: str) -> str:
         return ts[11:19]
 
 
-def _view(r: dict, audit: list[dict]) -> dict:
+def _decision_status(r: dict) -> str:
+    """The decision the request reached before any human action."""
+    return "AWAITING_APPROVAL" if r.get("plan") else r["status"]
+
+
+def _view(r: dict, audit: list[dict], scenario: dict | None) -> dict:
     """Everything the template needs for one request, already decided here."""
     events = {e["event"] for e in audit}
     ref = r["input"].get("external_ref") or ""
+    decision = _decision_status(r)
     return {
         **r,
         "ref": ref,
-        "scenario": SCENARIOS.get(ref, "בקשה אינטראקטיבית"),
+        "scenario": scenario["description"] if scenario else "בקשה אינטראקטיבית",
+        "scenario_name": scenario["name"] if scenario else "",
+        "expected": scenario["expected"] if scenario else None,
+        "decision_status": decision,
+        "match": (scenario["expected"] == decision) if scenario else None,
         "status_he": STATUS_HE.get(r["status"], r["status"]),
         "tone": STATUS_TONE.get(r["status"], "wait"),
         "replayed": bool(events & {"replay_detected", "replay_no_op"}),
@@ -104,8 +122,16 @@ def generate(engine, out: Path | None = None) -> Path:
     env = Environment(loader=FileSystemLoader(Path(__file__).parent / "templates"),
                       autoescape=select_autoescape(["html", "j2"]))
 
-    requests = [_view(r, engine.audit.read(r["request_id"])) for r in engine.store.all()]
-    intake_rejections = [e for e in engine.audit.read() if e["request_id"] is None]
+    by_id, by_text = _scenario_index()
+    requests = [_view(r, engine.audit.read(r["request_id"]), by_id.get(r["request_id"]))
+                for r in engine.store.all()]
+    intake_rejections = []
+    for e in engine.audit.read():
+        if e["request_id"] is None:
+            sc = by_text.get((e["data"].get("input") or {}).get("request_text", ""))
+            intake_rejections.append({**e, "scenario": sc,
+                                      "match": (sc["expected"] == "INPUT_REJECTED") if sc else None})
+    checked = [x["match"] for x in requests + intake_rejections if x["match"] is not None]
 
     assets = PROJECT_ROOT / "assets"
     logo = next((_data_uri(assets / n) for n in ("logo-bynet.png", "logo.svg") if (assets / n).exists()), None)
@@ -125,6 +151,8 @@ def generate(engine, out: Path | None = None) -> Path:
         audit_count=len(engine.audit.read()),
         completed=sum(1 for r in requests if r["status"] == "COMPLETED"),
         stopped=sum(1 for r in requests if r["tone"] == "stop") + len(intake_rejections),
+        scenarios_checked=len(checked),
+        scenarios_matched=sum(checked),
     )
     out.write_text(html, encoding="utf-8")
     return out
