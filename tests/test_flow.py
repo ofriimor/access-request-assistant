@@ -1,5 +1,6 @@
 """
-Automated tests for the mandatory scenarios.
+Automated tests for the mandatory scenarios, running against the real Gemini API.
+Only failures are simulated (tool timeouts, corrupt tool data, a compromised model).
 Run:  python -m pytest -v
 """
 import json
@@ -13,19 +14,19 @@ from tests.conftest import directory_grants, load_request
 
 
 # ---------------------------------------------------------------- 1. validation
-def test_invalid_input_is_rejected_with_clear_errors(engine):
+def test_invalid_input_is_rejected_with_clear_errors(engine_without_llm):
     with pytest.raises(IntakeValidationError) as exc:
-        engine.submit(load_request("07_invalid_input.json"))
+        engine_without_llm.submit(load_request("07_invalid_input.json"))
     msg = " ".join(exc.value.errors)
     assert "requester_id" in msg            # missing field is named
     assert "request_text" in msg            # too-short text is named
-    assert engine.store.all() == []         # nothing was created
+    assert engine_without_llm.store.all() == []         # nothing was created
 
 
-def test_unknown_fields_are_rejected(engine):
+def test_unknown_fields_are_rejected(engine_without_llm):
     raw = load_request("01_happy_path.json") | {"auto_approve": True}
     with pytest.raises(IntakeValidationError):
-        engine.submit(raw)
+        engine_without_llm.submit(raw)
 
 
 # ---------------------------------------------------------------- 2. knowledge match
@@ -166,9 +167,10 @@ def test_prompt_injection_is_blocked(engine):
     assert "plan" not in state
 
 
-class EvilLLM:
-    """Simulates a compromised model that returns a malicious tool parameter."""
-    name = "evil"
+class CompromisedModel:
+    """Failure simulation: a compromised model that returns a malicious tool parameter.
+    A real Gemini cannot be made to do this on demand, so this failure is simulated."""
+    name = "compromised-model-simulation"
 
     def complete(self, system, user):
         return json.dumps({"intent": "grant_access", "system": "crm; DROP TABLE users",
@@ -176,23 +178,24 @@ class EvilLLM:
                            "justification": "x", "gaps": [], "assumptions": []})
 
 
-def test_llm_parameter_injection_fails_schema(engine):
-    engine.llm = EvilLLM()
-    state = engine.submit(load_request("01_happy_path.json"))
+def test_llm_parameter_injection_fails_schema(engine_without_llm):
+    eng = engine_without_llm
+    eng.llm = CompromisedModel()
+    state = eng.submit(load_request("01_happy_path.json"))
     assert state["status"] == "FAILED_SAFE"            # schema rejected the value twice
-    assert directory_grants(engine, "u1002") == []
+    assert directory_grants(eng, "u1002") == []
 
 
-def test_write_tool_rejects_admin_parameter(engine):
+def test_write_tool_rejects_admin_parameter(engine_without_llm):
     with pytest.raises(ToolSchemaError):
-        engine.call_tool("REQ-0000000000", "grant_access",
+        engine_without_llm.call_tool("REQ-0000000000", "grant_access",
                          {"request_id": "REQ-0123456789", "user_id": "u1002", "system": "crm",
                           "access_level": "admin", "duration_days": 30}, "test")
 
 
-def test_unknown_tool_is_refused(engine):
+def test_unknown_tool_is_refused(engine_without_llm):
     with pytest.raises(eng_mod.ToolNotAllowed):
-        engine.call_tool("REQ-0000000000", "delete_user", {"user_id": "u1002"}, "test")
+        engine_without_llm.call_tool("REQ-0000000000", "delete_user", {"user_id": "u1002"}, "test")
 
 
 # ---------------------------------------------------------------- claims in text are not trusted

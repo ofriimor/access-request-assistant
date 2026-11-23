@@ -55,4 +55,4 @@ flowchart TD
 - The write tool updates a local JSON directory, not a real identity provider.
 - The CLI manager approval is a simulation and is not authenticated.
 - The application has no automatic revocation, no SSO, and no production transaction/locking guarantees.
-- Gemini is the only runtime provider; there is no silent fallback. Tests use an isolated FakeLLM (`tests/fake_llm.py`) that the application never loads.
+- Gemini is the only provider; there is no fallback or fake model. The automated tests also call the real Gemini API; only failures (tool timeouts, a compromised model, network outages) are simulated.
