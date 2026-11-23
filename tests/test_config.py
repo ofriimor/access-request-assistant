@@ -1,4 +1,4 @@
-"""The .env loader: reads KEY=VALUE, never overrides the real environment."""
+"""The .env loader: reads KEY=VALUE, never overrides values already set in the shell."""
 import os
 
 from app.config import load_env

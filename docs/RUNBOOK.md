@@ -5,14 +5,14 @@
 1. Python 3.10+: `python -m pip install -r requirements.txt`
 2. `copy .env.example .env` (Linux/macOS: `cp .env.example .env`) and set `GEMINI_API_KEY`.
    `.env` is git-ignored; never commit keys.
-3. Sanity check: `python -m pytest -v` (runs against the real Gemini API; needs the key and uses API quota).
+3. Sanity check: `python -m pytest -v` (runs against the Gemini API; needs the key and uses API quota).
 
 ## 2. Run
 
 | Goal | Command |
 | --- | --- |
-| Full demo: tests, all scenarios, As-Built report | `python demo.py --require-real-llm` |
-| Live demo with a pause between scenarios | `python demo.py --pause --require-real-llm` |
+| Full demo: tests, all scenarios, As-Built report | `python demo.py` |
+| Live demo with a pause between scenarios | `python demo.py --pause` |
 | Your own request, interactive manager decision | `python -m app interactive` |
 | Reset local state (directory, SQLite, audit) | `python -m app reset` |
 
@@ -61,7 +61,7 @@ To add a case, add a JSON file to the right folder; no code change is needed.
 | --- | --- | --- |
 | `AWAITING_APPROVAL` | Plan built, waiting for the direct manager | `approve` / `reject` |
 | `NEEDS_INFO` | Mandatory field missing | Resubmit with the missing details |
-| `BLOCKED` | Policy / identity / injection rule | No action via the assistant; escalate if needed |
+| `BLOCKED` | Policy / identity / injection rule, or a rule that failed when re-checked just before execute | No action via the assistant; escalate if needed |
 | `REJECTED` | Manager rejected | None; execute is refused |
 | `FAILED_SAFE` | LLM or tool failure; nothing unsafe was done | Fix cause, re-run `execute` (approval is kept) |
 | `VERIFICATION_FAILED` | Read-back did not match the plan | Investigate directory state; see audit |
@@ -74,13 +74,14 @@ To add a case, add a JSON file to the right folder; no code change is needed.
 | Startup error about `GEMINI_API_KEY` | Key missing / `.env` not created | Create `.env` from `.env.example` |
 | `LLM API HTTP 429/5xx` → FAILED_SAFE | Provider quota or outage (3 bounded retries done) | Wait, then resubmit |
 | `LLM API connection failed` | Network / proxy | Check connectivity; resubmit |
-| `not the required approver` | Approver is not the target's direct manager | Use the manager shown in `status` |
+| `not the required approver` / `cannot approve it` | Wrong approver, or the approver submitted the request | Use the approver shown in `status` |
 | `plan changed after approval` | Stored plan no longer matches the approved hash | Re-approve |
 | Duplicate-looking request returns old record | Same content → same request ID (replay) | Expected behavior |
 
 ## 7. Known limitations
 
 - Approver identity is supplied on the CLI and not authenticated (production: SSO + signed approval).
+- If the direct manager submits a request, the manager's own manager must approve it.
 - Directory and policies are local files simulating an IdP / ITSM; no file locking for concurrent writers.
 - Expiry dates are recorded, but there is no automatic revocation job.
 - Injection detection is a heuristic; safety relies on the deterministic Guard, closed enums and tool schemas.

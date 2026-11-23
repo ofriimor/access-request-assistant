@@ -40,8 +40,8 @@ ALLOWED_TRANSITIONS: dict[Status, set[Status]] = {
     S.UNDERSTOOD: {S.RETRIEVED, S.BLOCKED, S.FAILED_SAFE},
     S.RETRIEVED: {S.AWAITING_APPROVAL, S.NEEDS_INFO, S.BLOCKED, S.FAILED_SAFE},
     S.AWAITING_APPROVAL: {S.APPROVED, S.REJECTED},
-    S.APPROVED: {S.EXECUTED, S.FAILED_SAFE},
-    S.FAILED_SAFE: {S.EXECUTED, S.FAILED_SAFE},   # an approved request may be retried later
+    S.APPROVED: {S.EXECUTED, S.FAILED_SAFE, S.BLOCKED},     # BLOCKED: rules re-checked before execution
+    S.FAILED_SAFE: {S.EXECUTED, S.FAILED_SAFE, S.BLOCKED},  # an approved request may be retried later
     S.EXECUTED: {S.COMPLETED, S.VERIFICATION_FAILED},
     # terminal states: no way out
     S.COMPLETED: set(), S.NEEDS_INFO: set(), S.BLOCKED: set(),

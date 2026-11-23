@@ -1,0 +1,13 @@
+{
+  "description": "The manager submits, and has no manager of their own to approve independently (POL-GEN-00 §3)",
+  "request": {
+    "requester_id": "u1000",
+    "target_user_id": "u1010",
+    "request_text": "Please give Ron read access to the production database for 7 days because he investigates an outage"
+  },
+  "expect": {
+    "status": "BLOCKED",
+    "system": "prod_db",
+    "reason_contains": "§3"
+  }
+}

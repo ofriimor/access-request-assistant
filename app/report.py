@@ -1,5 +1,5 @@
 """
-Generates reports/as_built.html from REAL data:
+Generates reports/as_built.html from the data of the run:
   - all requests in the state DB (scenario results)
   - the audit log (per-request timeline)
   - pytest JUnit XML (test evidence), if runtime/test_results.xml exists

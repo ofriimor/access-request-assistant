@@ -1,381 +1,158 @@
-<p align="center"><img src="assets/logo-bynet.png" alt="Access Request Assistant" width="560"></p>
+<p align="center"><img src="assets/logo-bynet.png" alt="Access Request Assistant" width="520"></p>
 
-<h1 align="center">Access Request Assistant</h1>
+# Access Request Assistant
 
-<p align="center" dir="rtl">
-  מערכת לטיפול בבקשות הרשאה, בעזרת AI ובאישור אנושי:<br>
-  מבקשה בטקסט חופשי ועד הרשאה שבוצעה, אומתה ותועדה.
-</p>
+An assistant that handles employee access requests written in plain language. It understands the request with Google Gemini, checks it against company policy and the employee directory, waits for the manager's approval, grants the access, and verifies that the grant exists.
 
-<p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
-  <img alt="LLM" src="https://img.shields.io/badge/LLM-Google%20Gemini-4285F4?logo=google&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-63%20%C2%B7%20real%20Gemini-2EA44F">
-  <img alt="Use case" src="https://img.shields.io/badge/Use%20Case-3%20%C2%B7%20Access%20Request-6A4DF5">
-</p>
+> **The LLM suggests, the code decides.** Gemini only turns text into structured fields. Every decision is made by plain, testable rules, and nothing changes without a human approval.
 
----
-
-<div dir="rtl">
-
-## מה המערכת עושה
-
-עובדת כותבת בקשה במילים שלה, לדוגמה:
-
-> *"I need write access to the CRM for 90 days because I am taking over the northern region accounts from Avi."*
-
-המערכת מטפלת בבקשה בחמישה צעדים:
-
-1. **מבינה את הבקשה:** מודל Gemini מחלץ ממנה את המערכת, רמת ההרשאה, משך הזמן והסיבה העסקית.
-2. **מאתרת מידע:** מוצאת את הנוהל המתאים במאגר הידע המקומי, ובודקת את העובדת ב־Directory.
-3. **מחליטה לפי כללים:** קוד דטרמיניסטי בודק מחלקה, רמה, משך וזהות, וקובע אם הבקשה מאושרת, חסרה או חסומה.
-4. **עוצרת לאישור:** רק המנהל הישיר של העובדת יכול לאשר, והאישור חל על התוכנית המדויקת בלבד.
-5. **מבצעת ומאמתת:** כותבת את ההרשאה, קוראת שוב את ה־Directory כדי לוודא שהיא קיימת, ומפיקה דוח As-Built.
-
-> **העיקרון המנחה: ה־LLM מציע, הקוד מחליט.**
-> מודל השפה רק הופך טקסט לשדות מובנים. כל החלטה בעלת השפעה מתקבלת בקוד פשוט שאפשר לבדוק, ושום דבר לא משתנה בלי אישור של אדם.
-
----
-
-## איך זה עובד
-
-</div>
+## How it works
 
 ```mermaid
 flowchart LR
-    A([בקשה בטקסט חופשי]) --> B["1 · קליטה<br/>Intake"]
-    B --> C["2 · הבנה<br/>Understand · Gemini"]
-    C --> D["3 · איתור מידע<br/>Retrieve"]
-    D --> E{"4 · החלטה<br/>Plan · Guard"}
-    E -- חסום --> X([BLOCKED])
-    E -- חסר מידע --> Y([NEEDS_INFO])
-    E -- מותר --> F{{"5 · אישור מנהל<br/>Approve"}}
-    F -- דחייה --> Z([REJECTED])
-    F -- אישור --> G["6 · ביצוע<br/>Execute"]
-    G --> H["7 · אימות ודוח<br/>Verify & Report"]
+    A([Request text]) --> B[1 Intake]
+    B --> C[2 Understand<br/>Gemini]
+    C --> D[3 Retrieve<br/>policy + directory]
+    D --> E{4 Decide<br/>rules}
+    E -- blocked --> X([BLOCKED])
+    E -- missing info --> Y([NEEDS_INFO])
+    E -- allowed --> F{{5 Manager<br/>approval}}
+    F -- reject --> Z([REJECTED])
+    F -- approve --> G[6 Execute]
+    G --> H[7 Verify<br/>+ report]
     H --> I([COMPLETED])
-
-    classDef llm fill:#f5f1ff,stroke:#6a4df5,color:#172236
-    classDef human fill:#fff8e8,stroke:#d28a00,color:#172236
-    classDef action fill:#eefaf5,stroke:#168b68,color:#172236
-    classDef stop fill:#fff2f0,stroke:#b42318,color:#172236
-    class C llm
-    class F human
-    class G action
-    class X,Y,Z stop
 ```
 
-<div dir="rtl">
+1. **Intake** – the input is validated and gets a request ID based on its content.
+2. **Understand** – Gemini extracts the system, access level, duration and business reason.
+3. **Retrieve** – the matching policy is found and the employee is looked up in the directory.
+4. **Decide** – rules check department, level, duration and identity: allowed, missing info, or blocked.
+5. **Approve** – the flow stops until the right manager approves the exact plan.
+6. **Execute** – the rules are checked again on fresh data, then the access is granted.
+7. **Verify** – the directory is read again to confirm the grant; an audit trail and an As-Built report are produced.
 
-<p>
-<b>מקרא:</b>
-🟪 שלב שבו פועל ה־LLM &nbsp;·&nbsp;
-🟧 נקודת האישור האנושי &nbsp;·&nbsp;
-🟩 הפעולה היחידה שמשנה מצב &nbsp;·&nbsp;
-🟥 עצירה
-</p>
+## Quick start
 
-| שלב | מה קורה | איפה בקוד |
-|---|---|---|
-| **1 · קליטה** | הקלט נבדק: שדות חובה, פורמט מזהה ואורך, ושדות לא מוכרים נדחים. מזהה הבקשה נגזר מהתוכן, כך שבקשה שנשלחת שוב מזוהה כהרצה חוזרת. | `engine.submit` · `schemas.py` |
-| **2 · הבנה** | Gemini מחלץ כוונה, מערכת, רמה, משך, סיבה ופערים. הטקסט מוגדר כנתון לא אמין, והפלט עובר בדיקה מול סכמה, עם ניסיון חוזר אחד אם הוא לא תקין. | `llm.py` |
-| **3 · איתור מידע** | חיפוש TF-IDF בנהלים (3 התוצאות הטובות, עם ציון), קריאת הנוהל, ובדיקת המבקש והעובד ב־Directory. | `tools.py` |
-| **4 · החלטה** | ה־Guard מפעיל את הכללים: זהות, מחלקה, רמה מקסימלית, משך (ברירת מחדל ותקרה), איסור admin, מניעת הרשאה כפולה וזיהוי Injection. אם מותר, נבנית תוכנית פעולה עם טביעת אצבע (hash). | `guard.py` |
-| **5 · אישור** | התהליך עוצר. רק המנהל הישיר יכול לאשר או לדחות, והאישור נקשר ל־hash של התוכנית. | `engine.decide` |
-| **6 · ביצוע** | נבדקים האישור, ה־hash ומפתח ה־Idempotency, ורק אז רץ כלי הכתיבה היחיד. כשל זמני מקבל מספר מוגבל של ניסיונות חוזרים, ואחרת התהליך נעצר בבטחה. | `engine.execute` |
-| **7 · אימות ודוח** | ה־Directory נקרא שוב כדי לוודא שקיימת בדיוק הרשאה אחת תואמת, עם תאריך תפוגה. אחר כך נוצרים ה־Audit ודוח ה־As-Built. | `engine._verify` · `report.py` |
-
-### מחזור החיים של בקשה
-
-בקשה יכולה לעבור רק לפי החיצים בתרשים. כל מעבר אחר נחסם בקוד.
-
-</div>
-
-```mermaid
-stateDiagram-v2
-    direction LR
-    [*] --> RECEIVED
-    RECEIVED --> UNDERSTOOD
-    UNDERSTOOD --> RETRIEVED
-    RETRIEVED --> AWAITING_APPROVAL
-    RETRIEVED --> NEEDS_INFO
-    RETRIEVED --> BLOCKED
-    AWAITING_APPROVAL --> APPROVED
-    AWAITING_APPROVAL --> REJECTED
-    APPROVED --> EXECUTED
-    APPROVED --> FAILED_SAFE
-    FAILED_SAFE --> EXECUTED: ניסיון חוזר, אותו אישור
-    EXECUTED --> COMPLETED
-    EXECUTED --> VERIFICATION_FAILED
-    COMPLETED --> [*]
-```
-
-<div dir="rtl">
-
-אם ה־LLM או אחד הכלים לא זמינים בשלבים המוקדמים, הבקשה עוברת ל־`FAILED_SAFE` ונעצרת לפני כל פעולה.
-
----
-
-## מנגנוני הבטיחות
-
-| סיכון | ההגנה |
-|---|---|
-| ביצוע בלי אישור | שליחת הבקשה והביצוע הם שתי פעולות נפרדות, והביצוע דורש סטטוס `APPROVED` |
-| אישור של אדם לא מורשה | רק ה־`manager_id` של העובד, לפי ה־Directory, יכול לאשר |
-| שינוי התוכנית אחרי האישור | האישור שומר את ה־hash של התוכנית, וכל אי־התאמה חוסמת את הביצוע |
-| הרשאה כפולה בהרצה חוזרת | מזהה בקשה לפי תוכן, מפתח Idempotency ב־SQLite, ובדיקת `request_id` בתוך כלי הכתיבה |
-| Prompt Injection | הטקסט מסומן כלא אמין בפרומפט, ערכים מרשימה סגורה, זיהוי ביטויים חשודים (סעיף 7 ב־POL-GEN-00), וההחלטה בקוד |
-| פרמטרים זדוניים לכלים | רשימת כלים מותרים (Allowlist) וסכמה קשיחה לכל קלט של כלי. למשל, `admin` לא יכול להגיע ל־`grant_access` |
-| תקלה בכלי או ב־LLM | ניסיונות חוזרים מוגבלים עם המתנה הולכת וגדלה, ואז `FAILED_SAFE`. שום פעולה לא בטוחה לא מתבצעת |
-| טענות בטקסט, כמו "אני המנהל" | המחלקה והתפקיד נלקחים תמיד מה־Directory, אף פעם לא מהטקסט |
-
----
-
-## התקנה והפעלה
-
-**דרישות:** Python בגרסה 3.10 ומעלה, ומפתח API של Google Gemini.
-
-</div>
+Requires Python 3.10+ and a Google Gemini API key.
 
 ```bash
-python -m pip install -r requirements.txt
-cp .env.example .env          # Windows: copy .env.example .env
+pip install -r requirements.txt
+cp .env.example .env        # Windows: copy .env.example .env
 ```
 
-<div dir="rtl">
-
-פותחים את הקובץ `.env` וממלאים בו את הערכים:
-
-</div>
+Put your key in `.env`:
 
 ```ini
 GEMINI_API_KEY=your-key-here
-LLM_PROVIDER=gemini
 LLM_MODEL=gemini-3.5-flash-lite
 ```
 
-<div dir="rtl">
+## Run
 
-הקובץ `.env` נטען אוטומטית בכל הרצה, ומופיע ב־`.gitignore`, כך שהמפתח לא עולה ל־GitHub. ערך שמוגדר בטרמינל גובר על הערך שבקובץ.
-
-### פקודות הרצה
-
-| מטרה | פקודה |
+| What | Command |
 |---|---|
-| דמו מלא: בדיקות, כל התרחישים ודוח As-Built | `python demo.py --require-real-llm` |
-| דמו חי, עם עצירה בין התרחישים | `python demo.py --pause --require-real-llm` |
-| שמירת תוצרי הריצה בתיקייה `evidence/` | `python demo.py --require-real-llm --save-evidence` |
-| רשימת כל התרחישים | `python -m app scenario` |
-| הרצת תרחיש אחד מקצה לקצה, חי מול Gemini | `python -m app scenario allow/02_marketing_crm_read_hebrew` |
-| הרצת **כל** התרחישים מקצה לקצה, ודוח As-Built עליהם | `python -m app scenario --all` |
-| שליחת בקשה משלך והחלטה בתור המנהל | `python -m app interactive` |
-| הרצת כל הבדיקות האוטומטיות מול Gemini | `python -m pytest -v` |
-| בדיקה אוטומטית של תרחיש אחד | `python -m pytest tests/test_scenarios.py -v -k hebrew` |
+| Demo of all required scenarios + As-Built report | `python demo.py` |
+| Same, pausing between scenarios | `python demo.py --pause` |
+| Type your own request and approve it yourself | `python -m app interactive` |
+| List all scenarios | `python -m app scenario` |
+| Run one scenario end to end | `python -m app scenario allow/02_marketing_crm_read_hebrew` |
+| Run all scenarios + As-Built report | `python -m app scenario --all` |
+| Run the tests | `python -m pytest -v` |
 
-**התוצרים:** `reports/as_built.html` (דוח המסירה), `runtime/audit.jsonl` (תיעוד הריצה), `runtime/test_results.xml` (תוצאות הבדיקות).
+Add `--save-evidence` to `demo.py` or `scenario --all` to copy the report and audit trail to `evidence/`.
 
-### הרצה ידנית, שלב אחרי שלב
-
-</div>
+Step by step:
 
 ```bash
-python -m app reset
-python -m app submit allow/00_happy_path                # -> AWAITING_APPROVAL, prints REQ-<id>
-python -m app execute REQ-<id>                           # blocked: no approval
-python -m app approve REQ-<id> --by u1001                # the direct manager approves
-python -m app execute REQ-<id>                           # executes and verifies -> COMPLETED
+python -m app submit allow/00_happy_path        # stops for approval, prints REQ-<id>
+python -m app execute REQ-<id>                   # blocked: no approval yet
+python -m app approve REQ-<id> --by u1001        # the manager approves
+python -m app execute REQ-<id>                   # grants and verifies -> COMPLETED
 python -m app audit   REQ-<id>
-python -m app report
 ```
 
-<div dir="rtl">
+## Scenarios
 
-פקודות נוספות: דחייה עם `reject`, בדיקת מצב עם `status`, והדמיית תקלה עם `execute --simulate-failure timeout`.
+`data/scenarios/` holds 36 sample requests, each with the result it must reach. The demo, the CLI and the tests all use this folder. To add a case, add a JSON file to the right folder.
 
----
-
-## התרחישים
-
-כל הבקשות לדוגמה בפרויקט נמצאות בתיקייה אחת, `data/scenarios/`. כל קובץ הוא בקשה בטקסט חופשי, עם תיאור ועם התוצאה שהמערכת חייבת להגיע אליה. אותה תיקייה משמשת את הדמו, את ה־CLI ואת הבדיקות האוטומטיות.
-
-| תיקייה | תוצאה צפויה | מה יש בה |
+| Folder | Expected result | Examples |
 |---|---|---|
-| `allow/` (12) | `AWAITING_APPROVAL`, ואחרי אישור וביצוע `COMPLETED` | בקשה רגילה, בקשה בעברית, "Salesforce" במקום crm, משך בחודשים, בלי משך (ברירת מחדל), שנה ושנתיים (נחתך לתקרה), טקסט עם שגיאות כתיב, מנהל שמגיש בשם עובד |
-| `needs_info/` (7) | `NEEDS_INFO`, בלי תוכנית | בקשה עמומה, בלי סיבה עסקית, מערכת שלא קיימת (Jira), שאלה שאינה בקשת הרשאה, בקשה להסרת הרשאה, שתי בקשות בטקסט אחד |
-| `blocked/` (12) | `BLOCKED`, עם הסיבה הנכונה | admin, Injection באנגלית ובעברית, מחלקה לא מורשית, רמה מעל המקסימום, משתמש מושבת, משתמש שלא קיים, עמית שמבקש בשם אחר, אין מנהל שיאשר, טענה על תפקיד |
-| `invalid/` (3) | נדחה בקליטה, בלי לפנות למודל | טקסט קצר מדי, מזהה משתמש בפורמט שגוי, שדה חובה חסר |
+| `allow/` (12) | waits for approval, then completes | Hebrew request, "Salesforce" instead of crm, duration in months, no duration, duration above the policy maximum, typos |
+| `needs_info/` (7) | asks for missing details | vague request, no business reason, unknown system, not an access request, two requests in one |
+| `blocked/` (13) | blocked with a reason | admin access, prompt injection (English and Hebrew), wrong department, level above maximum, disabled or unknown user, no independent approver |
+| `invalid/` (4) | rejected before Gemini is called | text too short or too long, bad user ID, missing field |
 
-כדי להוסיף מקרה חדש, מוסיפים קובץ JSON לתיקייה המתאימה, בלי לשנות קוד.
+## Safety
 
-### הרצה חיה של התרחישים
-
-אפשר להריץ כל תרחיש חי מול Gemini, מההתחלה ועד הסוף. הבקשה עוברת קליטה, הבנה, איתור מידע והחלטה. אם היא מותרת, המערכת מנסה לבצע לפני אישור (ונחסמת), המנהל הישיר מאשר, ההרשאה מבוצעת ומאומתת. בסוף מוצגת השוואה בין ההחלטה הצפויה להחלטה שהתקבלה.
-
-</div>
-
-```bash
-python -m app scenario                                   # list all scenarios
-python -m app scenario allow/02_marketing_crm_read_hebrew  # one scenario, end to end
-python -m app scenario allow/10_support_crm_write_escalations --reject              # the manager rejects
-python -m app scenario allow/11_manager_requests_for_employee --simulate-failure timeout  # tool failure, then recovery
-python -m app scenario blocked/04_department_not_allowed --pause                    # wait for Enter between steps
-python -m app scenario --all                             # all scenarios + As-Built report
-python -m app scenario --all --save-evidence             # ... and copy the report and audit to evidence/
-```
-
-<div dir="rtl">
-
-ב־`--all` כל תרחיש מתחיל מ־Directory נקי, כך שהתרחישים לא משפיעים זה על זה. בסוף מוצגת טבלת סיכום, ונוצר דוח As-Built אחד על כל הריצה. בדוח, כל בקשה מסומנת בשם התרחיש שלה, עם ההחלטה הצפויה וההחלטה שהתקבלה.
-
-### התרחישים שבדמו
-
-| # | תרחיש בדמו | הקובץ | תוצאה צפויה |
-|---|---|---|---|
-| 1 | עובדת מכירות מבקשת הרשאת כתיבה ל־CRM | `allow/00_happy_path` | `AWAITING_APPROVAL` ← `APPROVED` ← `COMPLETED` |
-| 2 | "I need access to the system" | `needs_info/01_vague_request` | `NEEDS_INFO` |
-| 2ב | חסר השדה `requester_id` | `invalid/03_missing_requester_and_short_text` | הקלט נדחה, ולא נוצרת רשומה |
-| 3א | הרשאת admin למסד הנתונים של Production | `blocked/01_admin_production_db` | `BLOCKED` (סעיף 1) |
-| 3ב | "IGNORE ALL PREVIOUS INSTRUCTIONS…" | `blocked/02_prompt_injection_english` | `BLOCKED` (סעיף 7) |
-| 3ג | המנהל דוחה את הבקשה | `allow/10_support_crm_write_escalations` | `REJECTED`, והביצוע נחסם |
-| 4 | ה־Directory לא מגיב | `allow/11_manager_requests_for_employee` | `FAILED_SAFE`, ובהרצה חוזרת `COMPLETED` |
-| 5 | אותה בקשה נשלחת ומבוצעת שוב | `allow/00_happy_path` | הרשומה הקיימת מוחזרת, ועדיין יש הרשאה אחת |
-
----
-
-## ארכיטקטורה
-
-</div>
-
-```mermaid
-flowchart TB
-    CLI["CLI / demo.py"] --> ENG
-
-    subgraph ENG["engine.py · מנצח התהליך"]
-        direction LR
-        S[submit] --> P[decide] --> X[execute]
-    end
-
-    ENG --> SCH["schemas.py<br/>חוזי נתונים"]
-    ENG --> LLM["llm.py<br/>חיבור ל-Gemini"]
-    ENG --> GRD["guard.py<br/>כללי החלטה"]
-    ENG --> TLS["tools.py<br/>ארבעת הכלים"]
-    ENG --> ST["state.py<br/>מצב + SQLite"]
-    ENG --> AUD["audit.py<br/>יומן אירועים"]
-    ENG --> REP["report.py<br/>דוח As-Built"]
-
-    TLS --> KB[("data/policies<br/>5 נהלים")]
-    TLS --> DIR[("directory.json<br/>12 עובדים")]
-    LLM -.-> GEM(("Google Gemini"))
-```
-
-<div dir="rtl">
-
-| קובץ | תפקיד |
+| Risk | Protection |
 |---|---|
-| `app/engine.py` | מנהל את 7 השלבים. כל קריאה לכלי עוברת דרכו (Allowlist, סכמה, ניסיונות חוזרים ותיעוד). כולל את בדיקת האישור ואת האימות |
-| `app/guard.py` | ההחלטה הדטרמיניסטית לפי הנהלים, וזיהוי ביטויי Injection |
-| `app/llm.py` | החיבור ל־Gemini: פרומפט שמתייחס לקלט כלא אמין, פלט JSON, בדיקת סכמה וניסיונות חוזרים מוגבלים |
-| `app/tools.py` | אינדקס הנהלים (TF-IDF), ארבעת הכלים והדמיית תקלות |
-| `app/schemas.py` | חוזי Pydantic לקלט, לפלט ה־LLM ולקלט והפלט של כל כלי |
-| `app/state.py` | הסטטוסים, המעברים המותרים, השמירה ב־SQLite וטבלת ה־Idempotency |
-| `app/audit.py` | יומן אירועים בפורמט JSONL |
-| `app/report.py` | בונה את דוח ה־As-Built מהמצב ומהיומן של הריצה |
-| `app/config.py` | טוען את ההגדרות מקובץ `.env` |
-| `app/__main__.py` | פקודות ה־CLI והמצב האינטראקטיבי |
-| `demo.py` | מריץ את הבדיקות ואת כל התרחישים בפקודה אחת |
-| `app/scenarios.py` | טוען תרחישים מהתיקייה `data/scenarios/` לפי שם, עבור הדמו, ה־CLI והבדיקות |
-| `tests/` | 63 בדיקות אוטומטיות שרצות מול Gemini האמיתי, כולל 34 התרחישים |
+| Action without approval | Submitting and executing are separate steps; execute requires an approval |
+| Wrong approver | Only the employee's direct manager can approve |
+| Approving your own request | If the manager submitted it, the manager's own manager must approve |
+| Disabled users | A disabled employee cannot receive, request or approve access |
+| Plan changed after approval | The approval is tied to a hash of the plan |
+| Something changed after approval | The rules are checked again on fresh directory data just before execution |
+| Duplicate grants | Same request → same ID; an idempotency key; and "already has this access" is checked again before execution |
+| Prompt injection | Request text is treated as data; Gemini can only return fixed values; the decision is made in code |
+| Tool or Gemini failure | Limited retries, then a safe stop; nothing is executed |
 
-### מבנה התיקיות
-
-</div>
-
-```
-access-request-assistant/
-├── app/                 # application code
-│   └── templates/       # As-Built report template (Jinja2)
-├── data/
-│   ├── directory.json   # 12 users: departments, managers, one disabled user
-│   ├── policies/        # 5 Markdown policies with machine-readable headers
-│   └── scenarios/       # 34 sample requests with expected outcomes:
-│                        #   allow / needs_info / blocked / invalid
-├── tests/               # automated tests against the real Gemini API
-├── docs/
-│   └── RUNBOOK.md       # operation and troubleshooting
-├── evidence/            # test results and run artifacts
-├── demo.py
-└── requirements.txt
-```
-
-<div dir="rtl">
-
----
-
-## בדיקות
-
-כל הבדיקות האוטומטיות רצות מול **Google Gemini API האמיתי**. אין בפרויקט מודל מזויף.
-
-</div>
+## Tests
 
 ```bash
 python -m pytest -v
 ```
 
-<div dir="rtl">
+The tests call Gemini, so they need the key in `.env`. Only failures are simulated (tool timeouts, a compromised model, network outages), because they cannot be produced on demand.
 
-יש 63 בדיקות, בשלוש קבוצות:
+| File | What it checks |
+|---|---|
+| `test_scenarios.py` | every scenario in `data/scenarios/` reaches its expected result |
+| `test_flow.py` | approval rules, separation of duties, re-check before execute, tool failures, idempotency, malicious tool parameters |
+| `test_llm_providers.py` | Gemini configuration, API errors, safe stop when the service is down |
+| `test_config.py` | loading settings from `.env` |
 
-| קבוצה | קובץ | מה נבדק |
+## Project structure
+
+```
+app/
+  engine.py      runs the 7 steps, the approval gate, retries and verification
+  guard.py       the decision rules
+  llm.py         Gemini: prompt, JSON output, validation
+  tools.py       policy search, directory lookup, grant access
+  schemas.py     data contracts (Pydantic)
+  state.py       request status and storage (SQLite)
+  audit.py       audit trail (JSONL)
+  report.py      As-Built HTML report
+  scenarios.py   loads scenarios by name
+  __main__.py    command line
+data/
+  directory.json employees, departments, managers
+  policies/      5 access policies
+  scenarios/     sample requests with expected results
+tests/           automated tests
+docs/RUNBOOK.md  operation and troubleshooting
+demo.py          the scripted demo
+```
+
+## Design vs. As-Built
+
+| Given design | As built | Why |
 |---|---|---|
-| **התרחישים** (34) | `test_scenarios.py` | כל תרחיש בתיקייה `data/scenarios/` נשלח ל־Gemini, והתוצאה נבדקת מול התוצאה הצפויה. בתרחישים המותרים הבדיקה ממשיכה לאישור, לביצוע ולאימות |
-| **המנגנונים** | `test_flow.py` | המסלול המלא, חסימת ביצוע בלי אישור, דחייה, אישור רק של המנהל הישיר, שינוי תוכנית אחרי אישור, תקלות בכלים והתאוששות, נתון פגום, הרצה חוזרת ו־Idempotency, מודל פרוץ ופרמטרים זדוניים לכלים |
-| **Gemini ותקלות שירות** | `test_llm_providers.py` | הגדרות המפתח והספק, קריאות אמיתיות ל־Gemini, שגיאת 404 אמיתית מה־API, ועצירה בטוחה כשהשירות נופל |
+| Plan: build a plan and choose the tool | Deterministic rules decide; Gemini is used only to understand the request | Decisions must be predictable, testable and immune to prompt injection |
+| Approve: human approval | Bound to the plan hash; the direct manager approves, or the manager's manager if the manager submitted | Approve exactly what is executed; nobody approves their own request |
+| Execute: run a tool that changes state | The rules are checked again on fresh data first | Changes after the approval cannot slip through |
+| Retrieve: local knowledge | TF-IDF search over 5 policies | Five documents: simple, transparent, no extra services |
 
-כל תרחיש בודק גם שהבקשה באמת נשלחה ל־Gemini ושהוא ענה עליה. הפירוט של התרחישים מופיע בסעיף [התרחישים](#התרחישים).
+## Assumptions and limitations
 
-**מה מודמה, ולמה.** המודל עצמו לא מודמה אף פעם. מודמים רק **כשלים** שאי אפשר לייצר בכוונה מול שירות אמיתי: Timeout של כלי, נתון פגום מה־Directory, מודל שנפרץ ומחזיר פרמטר זדוני, נפילת רשת, ותשובה ריקה מ־Gemini. בדיקות שמוכיחות שהקלט נעצר **לפני** הקריאה למודל משתמשות במנגנון שמכשיל את הבדיקה אם המודל נקרא בכלל.
+- The directory and policies are local files that simulate real systems.
+- Every grant is time-limited: the policy default if no duration is given, never above the policy maximum.
+- Admin access is never granted by the assistant.
+- The approver's identity is typed on the command line and not authenticated (production: SSO).
+- There is no automatic removal of access when it expires.
+- If Gemini maps a request to the wrong system, the rules cannot detect it; the manager sees the exact plan before approving.
 
-**הערות:**
-- הבדיקות דורשות מפתח בקובץ `.env` וצורכות מכסת API. בלי מפתח, הבדיקות שצריכות את Gemini מדולגות עם הודעה ברורה.
-- בקשה זהה נשלחת ל־Gemini פעם אחת בכל הרצה, והתשובה האמיתית שלה משמשת שוב בבדיקות אחרות. אם ה־API מחזיר 429 (חריגה ממכסת הבקשות לדקה), הבדיקות ממתינות ומנסות שוב.
-- להרצת התרחישים בלבד: `python -m pytest tests/test_scenarios.py -v`. לתרחיש אחד מוסיפים `-k` וחלק מהשם, למשל `-k hebrew`.
-- הבדיקות בודקות רק שדות מרשימה סגורה וסטטוסים סופיים, ולא טקסט חופשי, כך שהתוצאה יציבה גם כשהמודל מנסח אחרת.
+## Tools used
 
----
-
-## Design מול As-Built
-
-| התכנון הנתון | מה מומש | למה |
-|---|---|---|
-| שלב ה־Plan מחליט איזה כלי להפעיל | ה־Guard הדטרמיניסטי מחליט, ויש כלי כתיבה אחד בלבד | החלטה בעלת השפעה צריכה להיות צפויה וניתנת לבדיקה |
-| איתור ידע | חיפוש TF-IDF מקומי ב־5 נהלים, עם הצגת ציון | פשוט, שקוף ועובד בלי שירות Embeddings חיצוני |
-| ביצוע על מערכת | כתיבה ל־Directory מקומי בקובץ JSON, שמדמה IdP | המשימה מתירה מערכת מדומה, והכלים מוגדרים עם סכמה כך שאפשר להחליף אותם |
-| אישור אנושי | קשור ל־hash של התוכנית, ורק על ידי המנהל הישיר | כל אישור חל על תוכנית אחת מדויקת |
-
-
-## הנחות
-
-- חבילת ה־Sample Data לא התקבלה, ולכן נתוני הדוגמה בתיקייה `data/` נבנו במיוחד לפרויקט. הם מכסים את כל תרחישי החובה, ואפשר להחליף אותם בלי לשנות קוד, כל עוד המבנה נשמר.
-- בקשה מוגשת על ידי העובד עצמו או על ידי המנהל הישיר שלו. המאשר הוא תמיד המנהל הישיר.
-- כל הרשאה מוגבלת בזמן: לפי ברירת המחדל של הנוהל אם לא צוין משך, ועד המקסימום שהנוהל מתיר.
-- הרשאת admin לא ניתנת דרך המערכת בשום מקרה, ומופנית ל־Security.
-
-## מגבלות ידועות
-
-- זהות המאשר מוקלדת ב־CLI ולא מאומתת. ב־Production: SSO ואישור חתום.
-- ה־Directory והנהלים הם קבצים מקומיים, ואין נעילה מפני כתיבה מקבילה.
-- תאריך התפוגה נרשם, אבל אין תהליך שמסיר את ההרשאה כשהוא מגיע.
-- זיהוי ה־Injection מבוסס על ביטויים קבועים. הבטיחות נשענת על ה־Guard, על הרשימות הסגורות ועל הסכמות של הכלים.
-
-## כלים שבהם נעשה שימוש
-
-- **בזמן ריצה:** Python, Pydantic, Jinja2, SQLite (מהספרייה הסטנדרטית), ו־Google Gemini API עם המודל `gemini-3.5-flash-lite`.
-- **בדיקות:** pytest.
-- **פיתוח בעזרת AI:** נעשה שימוש ב־Claude (Anthropic) ליצירת חלקים מהקוד, מהבדיקות ומהתיעוד. כל הרכיבים נבדקו, הורצו והותאמו.
-
-## תיעוד נוסף
-
-- [Runbook: התקנה, תפעול וטיפול בתקלות](docs/RUNBOOK.md)
-- [Evidence: תוצאות בדיקות ותוצרי ריצה](evidence/README.md)
-
-</div>
+Python, Pydantic, Jinja2, SQLite, pytest, and the Google Gemini API (`gemini-3.5-flash-lite`).
+Claude (Anthropic) was used to help write parts of the code, tests and documentation; all of it was reviewed, run and adapted.
