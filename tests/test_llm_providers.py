@@ -26,7 +26,7 @@ def test_other_providers_rejected(monkeypatch):
             get_llm()
 
 
-def test_real_gemini_selected(monkeypatch):
+def test_gemini_is_selected(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-placeholder")
     monkeypatch.setenv("LLM_PROVIDER", "gemini")
     assert get_llm().name == "gemini"
@@ -63,7 +63,7 @@ def test_explicit_gemini_requires_key(monkeypatch):
         get_llm()
 
 
-def test_real_gemini_returns_valid_understanding(gemini):
+def test_gemini_returns_valid_understanding(gemini):
     """A call to Gemini returns JSON that passes the Understanding schema."""
     from app.llm import SYSTEM_PROMPT, build_user_prompt, parse_understanding
     raw = gemini.client.complete(SYSTEM_PROMPT, build_user_prompt(
