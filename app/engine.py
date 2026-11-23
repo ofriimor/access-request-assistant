@@ -242,6 +242,15 @@ class Engine:
             transition(state, Status.NEEDS_INFO, "; ".join(decision.missing))
             return
 
+        approver_id, problem = self._required_approver(rid, state)
+        if problem:
+            decision.verdict, decision.risk_level = "BLOCK", "high"
+            decision.block_reasons.append(problem)
+            state["decision"] = decision.to_dict()
+            transition(state, Status.BLOCKED, problem)
+            self.audit.log(rid, "plan", "approver_blocked", {"reason": problem})
+            return
+
         target = state["target_user"]
         plan = sc.ActionPlan(
             tool="grant_access",
@@ -255,10 +264,26 @@ class Engine:
         )
         state["plan"] = plan.model_dump()
         state["plan_hash"] = sha(state["plan"])
-        state["approver_required"] = target["manager_id"]
-        transition(state, Status.AWAITING_APPROVAL, f"waiting for manager {target['manager_id']}")
+        state["approver_required"] = approver_id
+        transition(state, Status.AWAITING_APPROVAL, f"waiting for approver {approver_id}")
         self.audit.log(rid, "plan", "plan_created", {"plan": state["plan"], "plan_hash": state["plan_hash"],
-                                                     "approver_required": target["manager_id"]})
+                                                     "approver_required": approver_id})
+
+    def _required_approver(self, rid: str, state: dict) -> tuple[str | None, str | None]:
+        """Who must approve (POL-GEN-00 §3, §4). Returns (approver_id, block_reason).
+        Normally the target's direct manager. When that manager submitted the request,
+        their own manager approves, so nobody approves their own request."""
+        requester, target = state["requester"], state["target_user"]
+        approver_id = target["manager_id"]
+        if requester["user_id"] == approver_id:
+            approver_id = requester["manager_id"]
+            if approver_id is None:
+                return None, (f"POL-GEN-00 §3: the request was submitted by the direct manager "
+                              f"{requester['user_id']}, who has no manager to approve it independently")
+        approver = self._lookup_known_user(rid, approver_id, "approver")
+        if approver.status != "active":
+            return None, f"POL-GEN-00 §4: approver {approver_id} is {approver.status}"
+        return approver_id, None
 
     # ================================================================ 5 approve
     def decide(self, rid: str, approver_id: str, approve: bool, reason: str = "") -> dict:
@@ -270,6 +295,18 @@ class Engine:
             self.audit.log(rid, "approve", "approval_refused",
                            {"approver": approver_id, "reason": "not the required approver"})
             raise ApprovalError(f"{approver_id} is not authorized; required approver is {state['approver_required']}")
+        if approver_id == state["input"]["requester_id"]:
+            self.audit.log(rid, "approve", "approval_refused",
+                           {"approver": approver_id, "reason": "cannot approve own request"})
+            raise ApprovalError(f"{approver_id} submitted this request and cannot approve it")
+        try:
+            approver = self.call_tool(rid, "lookup_user", {"user_id": approver_id}, "approve")
+        except ToolFailed as e:
+            raise ApprovalError(f"cannot verify approver {approver_id}: {e}") from e
+        if approver.status != "active":
+            self.audit.log(rid, "approve", "approval_refused",
+                           {"approver": approver_id, "reason": f"approver is {approver.status}"})
+            raise ApprovalError(f"approver {approver_id} is {approver.status}")
 
         state["approval"] = {"approver_id": approver_id, "approved": approve, "reason": reason,
                              "plan_hash": state["plan_hash"], "at": now_iso()}
@@ -309,6 +346,22 @@ class Engine:
             self.audit.log(rid, "execute", "idempotent_hit", {"idempotency_key": idem_key})
             result = prior
         else:
+            try:
+                reasons = self._recheck_before_execute(state)
+            except UnknownUser as e:                       # the user was removed meanwhile
+                reasons = [str(e)]
+            except (ToolFailed, ToolSchemaError, ToolNotAllowed) as e:
+                state["error"] = str(e)
+                transition(state, Status.FAILED_SAFE, f"re-check before execute failed, safe to retry: {e}")
+                self.store.save(state)
+                self.audit.log(rid, "execute", "failed_safe", {"error": str(e)})
+                return state
+            if reasons:
+                state["decision_at_execute"] = {"verdict": "BLOCK", "block_reasons": reasons}
+                transition(state, Status.BLOCKED, "rules re-checked before execute: " + "; ".join(reasons))
+                self.store.save(state)
+                self.audit.log(rid, "execute", "blocked_at_execute", {"block_reasons": reasons})
+                return state
             self.tools.failure_mode = simulate_failure
             try:
                 grant = self.call_tool(rid, plan["tool"], plan["params"], "execute")
@@ -331,6 +384,22 @@ class Engine:
         self._verify(state)
         self.store.save(state)
         return state
+
+    def _recheck_before_execute(self, state: dict) -> list[str]:
+        """The world may have changed since the plan was approved: the employee may have
+        been disabled, moved department, or received the same access through another
+        request. Re-read the directory and apply the same rules again. Returns block reasons."""
+        rid = state["request_id"]
+        und = sc.Understanding.model_validate(state["understanding"])
+        target = self._lookup_known_user(rid, state["input"]["target_user_id"], "target user")
+        requester = target if state["input"]["requester_id"] == target.user_id else \
+            self._lookup_known_user(rid, state["input"]["requester_id"], "requester")
+        decision = guard.evaluate(und, requester, target, self.tools.index.by_system(und.system),
+                                  self.tools.index.general(), state["injection_hits"],
+                                  current_request_id=rid)
+        self.audit.log(rid, "execute", "rules_rechecked", {"verdict": decision.verdict,
+                                                           "block_reasons": decision.block_reasons})
+        return [] if decision.verdict == "ALLOW" else (decision.block_reasons + decision.missing)
 
     def _verify(self, state: dict) -> None:
         """Post-Action Verification: re-read the directory, do not trust the tool's answer."""

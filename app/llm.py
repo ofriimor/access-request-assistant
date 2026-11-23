@@ -2,7 +2,7 @@
 LLM layer - used in the "Understand" step: turn free text into structured fields.
 
 One production LLM provider: Google Gemini (GEMINI_API_KEY).
-There is no fake or fallback model: the application and the tests both call the real Gemini API.
+There is no fake or fallback model: the application and the tests both call the Gemini API.
 
 The LLM output is NEVER trusted directly: it is parsed and validated against
 schemas.Understanding. Invalid output -> one retry with the error -> fail safe.
@@ -59,7 +59,7 @@ class LLMOutputError(Exception):
 
 
 class LLMServiceError(Exception):
-    """A real model provider could not be reached or returned an invalid response."""
+    """The model provider could not be reached or returned an invalid response."""
     pass
 
 
@@ -104,7 +104,7 @@ def _post_json(url: str, headers: dict, body: dict, timeout: int = 60) -> dict:
             raise LLMServiceError(
                 f"LLM API connection failed ({type(exc).__name__})"
             ) from None
-        except (UnicodeError, json.JSONDecodeError) as exc:
+        except (UnicodeError, json.JSONDecodeError):
             raise LLMServiceError("LLM API returned malformed JSON") from None
 
 
@@ -150,5 +150,5 @@ def get_llm():
     if mode != "gemini":
         raise ValueError("Only LLM_PROVIDER=gemini is supported")
     if not os.environ.get("GEMINI_API_KEY"):
-        raise ValueError("GEMINI_API_KEY is required for real Gemini requests")
+        raise ValueError("GEMINI_API_KEY is required for Gemini requests")
     return GeminiLLM()

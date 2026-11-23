@@ -48,8 +48,6 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--pause", action="store_true")
     ap.add_argument("--skip-tests", action="store_true")
-    ap.add_argument("--require-real-llm", action="store_true",
-                    help="Require the real Gemini provider (always enforced)")
     ap.add_argument("--save-evidence", action="store_true",
                     help="Copy the run's report, audit log and test results into evidence/")
     args = ap.parse_args()
@@ -57,7 +55,7 @@ def main() -> None:
 
     # Validate provider BEFORE reset so a missing API key cannot destroy evidence.
     from app.llm import get_llm
-    provider = get_llm()
+    get_llm()
     reset_runtime()
     if not args.skip_tests:
         title("0. Automated tests")
@@ -114,7 +112,8 @@ def main() -> None:
     # ------------------------------------------------------------------ 4
     title("4. TOOL FAILURE - directory times out")
     s = eng.submit(load("allow/11_manager_requests_for_employee")); rid2 = s["request_id"]
-    eng.decide(rid2, "u1001", True)
+    step(f"Dana submitted for Eden, so Dana's manager approves ({s['approver_required']})")
+    eng.decide(rid2, s["approver_required"], True)
     step("execute with simulated timeout (3 attempts, backoff)")
     show(eng.execute(rid2, simulate_failure="timeout"))
     step("directory is back → execute again (no new approval needed, idempotent)")

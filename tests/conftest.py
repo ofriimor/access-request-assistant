@@ -1,10 +1,10 @@
 """
 Shared test setup.
 
-Every test that needs language understanding talks to the real Google Gemini API.
+Every test that needs language understanding talks to the Google Gemini API.
 There is no fake model: the only simulated parts are failures (a tool timeout, a broken
 or compromised model response, a network error), which cannot be produced on demand
-from a real service.
+from a live service.
 
 The tests need GEMINI_API_KEY in .env (or in the shell) and use API quota.
 """
@@ -32,7 +32,7 @@ def directory_grants(eng, user_id):
     return next(u for u in data["users"] if u["user_id"] == user_id)["access"]
 
 
-# ------------------------------------------------------------------ real Gemini settings
+# ------------------------------------------------------------------ Gemini settings
 def _env_file() -> dict:
     """Read .env without touching os.environ, so configuration tests are not affected."""
     path = PROJECT_ROOT / ".env"
@@ -52,7 +52,7 @@ def gemini_settings() -> dict:
 
 
 def gemini_key_problem() -> str | None:
-    """Why the real Gemini key cannot be used, or None if it looks fine."""
+    """Why the Gemini key cannot be used, or None if it looks fine."""
     path = PROJECT_ROOT / ".env"
     key = gemini_settings().get("GEMINI_API_KEY", "")
     if not key:
@@ -69,7 +69,7 @@ def has_gemini_key() -> bool:
 
 
 class SessionCachedGemini:
-    """The real Gemini client. An identical prompt is sent once per test run and its real
+    """The Gemini client. An identical prompt is sent once per test run and its
     answer is reused, so repeated scenarios do not hit the API rate limit."""
 
     def __init__(self, client):
@@ -95,7 +95,7 @@ class SessionCachedGemini:
         return self._answers[key]
 
     def _call_with_rate_limit_wait(self, system: str, user: str) -> str:
-        """Many real prompts in one run can exceed the API's requests-per-minute quota.
+        """Many prompts in one run can exceed the API's requests-per-minute quota.
         A 429 is a quota signal, not a system failure, so the tests wait and try again."""
         import time
         from app.llm import LLMServiceError
@@ -110,7 +110,7 @@ class SessionCachedGemini:
 
 @pytest.fixture(scope="session")
 def gemini():
-    """One real Gemini client for the whole test run."""
+    """One Gemini client for the whole test run."""
     problem = gemini_key_problem()
     if problem:
         pytest.skip(f"Gemini key not usable: {problem}")
@@ -125,7 +125,7 @@ def gemini():
 @pytest.fixture
 def engine(tmp_path, gemini):
     """A fresh, isolated engine per test (its own directory copy, DB and audit log),
-    connected to the real Gemini API."""
+    connected to the Gemini API."""
     eng = Engine(runtime_dir=tmp_path, llm=gemini, sleep=lambda s: None)
     yield eng
     eng.store.close()

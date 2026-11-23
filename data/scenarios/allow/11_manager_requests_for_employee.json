@@ -1,5 +1,5 @@
 {
-  "description": "The direct manager submits on behalf of an employee (used in the demo for a tool failure)",
+  "description": "The direct manager submits for an employee: the manager's own manager approves (used in the demo for a tool failure)",
   "request": {
     "external_ref": "TCK-1006",
     "requester_id": "u1001",
@@ -11,6 +11,6 @@
     "system": "crm",
     "access_level": "read",
     "duration_days": 60,
-    "approver": "u1001"
+    "approver": "u1000"
   }
 }

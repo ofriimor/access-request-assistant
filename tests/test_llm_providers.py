@@ -1,5 +1,5 @@
 """
-Gemini provider tests: configuration, a real API call, and simulated outages
+Gemini provider tests: configuration, calls to the API, and simulated outages
 (network down, HTTP 503, empty response) that cannot be produced on demand.
 """
 import urllib.error
@@ -64,7 +64,7 @@ def test_explicit_gemini_requires_key(monkeypatch):
 
 
 def test_real_gemini_returns_valid_understanding(gemini):
-    """A real call to Gemini returns JSON that passes the Understanding schema."""
+    """A call to Gemini returns JSON that passes the Understanding schema."""
     from app.llm import SYSTEM_PROMPT, build_user_prompt, parse_understanding
     raw = gemini.client.complete(SYSTEM_PROMPT, build_user_prompt(
         "I need read access to the HR portal for 14 days because I review onboarding forms"))
@@ -96,7 +96,7 @@ def test_extracts_structured_fields(engine):
 
 
 def test_unavailable_model_fails_safe(tmp_path, monkeypatch, gemini):
-    # A real call to Gemini with a model that does not exist: the API answers 404.
+    # A call to Gemini with a model that does not exist: the API answers 404.
     for k, v in gemini_settings().items():
         monkeypatch.setenv(k, v)
     monkeypatch.setenv("LLM_MODEL", "gemini-model-that-does-not-exist")

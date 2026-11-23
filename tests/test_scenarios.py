@@ -1,5 +1,5 @@
 """
-Scenario suite: every JSON file in data/scenarios/ is a real prompt sent to the real
+Scenario suite: every JSON file in data/scenarios/ is a prompt sent to the
 Gemini API, with the outcome the system must reach.
 
     data/scenarios/allow/       -> AWAITING_APPROVAL, then approve + execute -> COMPLETED
@@ -56,7 +56,7 @@ def test_scenario(path, engine, gemini):
 
     # The request really went through Gemini.
     _check(state.get("llm_provider") == "gemini" and "understanding" in state,
-           case, "the request was understood by the real Gemini model", state)
+           case, "the request was understood by Gemini", state)
     assert gemini.answered(case["request"]["request_text"]), "this prompt was not answered by Gemini"
 
     und = state["understanding"]

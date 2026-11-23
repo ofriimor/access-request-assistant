@@ -51,7 +51,10 @@ def evaluate(
     policy: sc.Policy | None,
     general: sc.Policy,
     injection_hits: list[str],
+    current_request_id: str | None = None,
 ) -> Decision:
+    """current_request_id: when the rules are checked again just before execution, a grant
+    that this same request already wrote (e.g. before a crash) is not counted as a duplicate."""
     block: list[str] = []
     missing: list[str] = []
     assumptions: list[str] = list(und.assumptions)
@@ -75,6 +78,8 @@ def evaluate(
     # --- identity rules
     if target.status != "active":
         block.append(f"{general.policy_id} §4: target user is {target.status}")
+    if requester.user_id != target.user_id and requester.status != "active":
+        block.append(f"{general.policy_id} §4: requester {requester.user_id} is {requester.status}")
     if requester.user_id != target.user_id and requester.user_id != target.manager_id:
         block.append(f"{general.policy_id} §2: requester {requester.user_id} is neither the "
                      f"employee nor their direct manager")
@@ -108,6 +113,8 @@ def evaluate(
             # already has it? (no duplicate grants)
             if und.access_level:
                 for g in target.access:
+                    if g.request_id == current_request_id:
+                        continue
                     if g.system == und.system and sc.LEVEL_RANK[g.access_level] >= sc.LEVEL_RANK.get(und.access_level, 9):
                         block.append(f"user already has {g.access_level} on {g.system} ({g.grant_id})")
 
