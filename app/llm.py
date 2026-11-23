@@ -2,7 +2,7 @@
 LLM layer - used in the "Understand" step: turn free text into structured fields.
 
 One production LLM provider: Google Gemini (GEMINI_API_KEY).
-Tests inject an isolated fake client; the application never substitutes a fake for Gemini.
+There is no fake or fallback model: the application and the tests both call the real Gemini API.
 
 The LLM output is NEVER trusted directly: it is parsed and validated against
 schemas.Understanding. Invalid output -> one retry with the error -> fail safe.

@@ -407,7 +407,7 @@
           <tr><td>Plan: בניית תוכנית והחלטה על Tool, אפשר בעזרת LLM</td><td>ההחלטה בקוד דטרמיניסטי (Guard). ה־LLM משמש רק ל־Understand.</td><td>החלטת הרשאה צריכה להיות צפויה, ניתנת לבדיקה וחסינה ל־Prompt Injection.</td></tr>
           <tr><td>Approve: עצירה ואישור אנושי</td><td>האישור נשמר עם <code>plan_hash</code>, ורק המנהל הישיר מורשה.</td><td>מונע מצב שבו מאשרים דבר אחד ומבצעים דבר אחר.</td></tr>
           <tr><td>Intake: יצירת Request ID</td><td>ה־ID נגזר מ־hash של תוכן הבקשה.</td><td>הגשה חוזרת מזוהה אוטומטית כ־Replay.</td></tr>
-          <tr><td>LLM: מקומי או שירות API</td><td>Google Gemini API בלבד, בלי ספק חלופי בזמן ריצה. בבדיקות משמש FakeLLM מבודד.</td><td>חסר מפתח או ש־Gemini לא זמין? המערכת נעצרת בבטחה ולא מציגה Mock כאילו הוא LLM אמיתי.</td></tr>
+          <tr><td>LLM: מקומי או שירות API</td><td>Google Gemini API בלבד, בלי ספק חלופי. גם הבדיקות האוטומטיות רצות מול Gemini האמיתי, ורק כשלים מודמים.</td><td>חסר מפתח או ש־Gemini לא זמין? המערכת נעצרת בבטחה לפני כל פעולה.</td></tr>
           <tr><td>Retrieve: ידע מקומי</td><td>TF-IDF במקום Embeddings.</td><td>חמישה מסמכים. שקוף, דטרמיניסטי ובלי תלויות.</td></tr>
           <tr><td>Verify &amp; Report</td><td>הדוח נוצר בפקודה נפרדת ומכסה את כל הריצות.</td><td>מסמך מסירה אחד לכל התרחישים.</td></tr>
           <tr><td>אין</td><td><code>FAILED_SAFE</code> מאפשר להריץ Execute שוב בלי אישור חדש.</td><td>התקלה הייתה בתשתית ולא בתוכנית, וה־Idempotency מונע כפילות.</td></tr>
