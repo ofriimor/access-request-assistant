@@ -166,7 +166,8 @@ LLM_MODEL=gemini-3.5-flash-lite
 | דמו חי, עם עצירה בין התרחישים | `python demo.py --pause --require-real-llm` |
 | שמירת תוצרי הריצה בתיקייה `evidence/` | `python demo.py --require-real-llm --save-evidence` |
 | רשימת כל התרחישים | `python -m app scenario` |
-| הרצת תרחיש אחד והשוואה לתוצאה הצפויה | `python -m app scenario allow/02_marketing_crm_read_hebrew` |
+| הרצת תרחיש אחד מקצה לקצה, חי מול Gemini | `python -m app scenario allow/02_marketing_crm_read_hebrew` |
+| הרצת **כל** התרחישים מקצה לקצה, ודוח As-Built עליהם | `python -m app scenario --all` |
 | שליחת בקשה משלך והחלטה בתור המנהל | `python -m app interactive` |
 | הרצת כל הבדיקות האוטומטיות מול Gemini | `python -m pytest -v` |
 | בדיקה אוטומטית של תרחיש אחד | `python -m pytest tests/test_scenarios.py -v -k hebrew` |
@@ -205,6 +206,26 @@ python -m app report
 | `invalid/` (3) | נדחה בקליטה, בלי לפנות למודל | טקסט קצר מדי, מזהה משתמש בפורמט שגוי, שדה חובה חסר |
 
 כדי להוסיף מקרה חדש, מוסיפים קובץ JSON לתיקייה המתאימה, בלי לשנות קוד.
+
+### הרצה חיה של התרחישים
+
+אפשר להריץ כל תרחיש חי מול Gemini, מההתחלה ועד הסוף. הבקשה עוברת קליטה, הבנה, איתור מידע והחלטה. אם היא מותרת, המערכת מנסה לבצע לפני אישור (ונחסמת), המנהל הישיר מאשר, ההרשאה מבוצעת ומאומתת. בסוף מוצגת השוואה בין ההחלטה הצפויה להחלטה שהתקבלה.
+
+</div>
+
+```bash
+python -m app scenario                                   # list all scenarios
+python -m app scenario allow/02_marketing_crm_read_hebrew  # one scenario, end to end
+python -m app scenario allow/10_support_crm_write_escalations --reject              # the manager rejects
+python -m app scenario allow/11_manager_requests_for_employee --simulate-failure timeout  # tool failure, then recovery
+python -m app scenario blocked/04_department_not_allowed --pause                    # wait for Enter between steps
+python -m app scenario --all                             # all scenarios + As-Built report
+python -m app scenario --all --save-evidence             # ... and copy the report and audit to evidence/
+```
+
+<div dir="rtl">
+
+ב־`--all` כל תרחיש מתחיל מ־Directory נקי, כך שהתרחישים לא משפיעים זה על זה. בסוף מוצגת טבלת סיכום, ונוצר דוח As-Built אחד על כל הריצה. בדוח, כל בקשה מסומנת בשם התרחיש שלה, עם ההחלטה הצפויה וההחלטה שהתקבלה.
 
 ### התרחישים שבדמו
 

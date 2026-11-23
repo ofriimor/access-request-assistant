@@ -44,7 +44,10 @@ Each file holds a description, the request and the expected result.
 | Goal | Command |
 | --- | --- |
 | List all scenarios | `python -m app scenario` |
-| Run one and compare to the expected result | `python -m app scenario blocked/04_department_not_allowed` |
+| Run one live, end to end, and compare to the expected result | `python -m app scenario blocked/04_department_not_allowed` |
+| ... with the manager rejecting | `python -m app scenario allow/10_support_crm_write_escalations --reject` |
+| ... with a tool failure and recovery | `python -m app scenario allow/11_manager_requests_for_employee --simulate-failure timeout` |
+| Run all, end to end, and build the As-Built report | `python -m app scenario --all` (add `--save-evidence` to copy it to `evidence/`) |
 | Submit one into the step-by-step flow | `python -m app submit allow/00_happy_path` |
 | Test all scenarios automatically | `python -m pytest tests/test_scenarios.py -v` |
 | Test one scenario automatically | `python -m pytest tests/test_scenarios.py -v -k hebrew` |

@@ -231,15 +231,17 @@
     <!-- ================================================= scenarios -->
     <section id="scenarios">
       <h2>תוצאות התרחישים</h2>
-      <p class="intro">כל בקשה שעברה במערכת בריצה הזו, עם ההחלטה והסיבות שלה. הנתונים נשלפו ישירות מה־State וה־Audit.</p>
+      <p class="intro">כל בקשה שעברה במערכת בריצה הזו, עם ההחלטה והסיבות שלה. הנתונים נשלפו ישירות מה־State וה־Audit.
+      {% if scenarios_checked %}<br><b>{{ scenarios_matched }} מתוך {{ scenarios_checked }}</b> תרחישים מהתיקייה <code>data/scenarios/</code> הגיעו להחלטה הצפויה.{% endif %}</p>
 
       <div class="ledger">
       {% for r in requests %}
         <article class="case">
           <div>
             <h3>{{ r.scenario }}</h3>
-            <div class="ids">{{ r.ref }}{% if r.ref %}<br>{% endif %}{{ r.request_id }}</div>
+            <div class="ids">{% if r.scenario_name %}{{ r.scenario_name }}<br>{% endif %}{{ r.ref }}{% if r.ref %}<br>{% endif %}{{ r.request_id }}</div>
             <div class="status tone-{{ r.tone }}">{{ r.status_he }}</div>
+            {% if r.expected %}<div class="ids">צפוי: {{ r.expected }}<br>התקבל: {{ r.decision_status }} {% if r.match %}<span class="ok-mark">✓</span>{% else %}<span class="tone-stop">✗</span>{% endif %}</div>{% endif %}
           </div>
           <div>
             <p class="ask"><small>{{ r.input.requester_id }} → {{ r.input.target_user_id }}</small>{{ r.input.request_text }}</p>
@@ -270,9 +272,10 @@
       {% for e in intake_rejections %}
         <article class="case">
           <div>
-            <h3>{{ "קלט לא תקין" }}</h3>
-            <div class="ids">{{ e.data.input.external_ref if e.data.input and e.data.input.external_ref else "" }}</div>
+            <h3>{{ e.scenario.description if e.scenario else "קלט לא תקין" }}</h3>
+            <div class="ids">{% if e.scenario %}{{ e.scenario.name }}<br>{% endif %}{{ e.data.input.external_ref if e.data.input and e.data.input.external_ref else "" }}</div>
             <div class="status tone-stop">נדחה בקליטה</div>
+            {% if e.scenario %}<div class="ids">צפוי: {{ e.scenario.expected }} {% if e.match %}<span class="ok-mark">✓</span>{% else %}<span class="tone-stop">✗</span>{% endif %}</div>{% endif %}
           </div>
           <div>
             {% if e.data.input and e.data.input.request_text %}<p class="ask"><small>schema validation</small>{{ e.data.input.request_text }}</p>{% endif %}
