@@ -1,14 +1,15 @@
 """
-Scenario suite: every JSON file in tests/scenarios/ is a real prompt sent to the real
+Scenario suite: every JSON file in data/scenarios/ is a real prompt sent to the real
 Gemini API, with the outcome the system must reach.
 
-    tests/scenarios/allow/       -> AWAITING_APPROVAL, then approve + execute -> COMPLETED
-    tests/scenarios/needs_info/  -> NEEDS_INFO, no plan
-    tests/scenarios/blocked/     -> BLOCKED, with the expected reason
-    tests/scenarios/invalid/     -> rejected at intake, the model is never called
+    data/scenarios/allow/       -> AWAITING_APPROVAL, then approve + execute -> COMPLETED
+    data/scenarios/needs_info/  -> NEEDS_INFO, no plan
+    data/scenarios/blocked/     -> BLOCKED, with the expected reason
+    data/scenarios/invalid/     -> rejected at intake, the model is never called
 
 To add a case, drop a new JSON file into the right folder - no code changes needed.
-Run only this suite:   python -m pytest tests/test_scenarios.py -v
+Run all scenarios:   python -m pytest tests/test_scenarios.py -v
+Run one scenario:    python -m pytest tests/test_scenarios.py -v -k hebrew
 """
 import json
 from pathlib import Path
@@ -18,8 +19,9 @@ import pytest
 from app.engine import IntakeValidationError
 from tests.conftest import directory_grants
 
-SCENARIOS = Path(__file__).resolve().parent / "scenarios"
-CASES = sorted(SCENARIOS.glob("*/*.json"))
+from app.scenarios import all_scenarios
+
+CASES = all_scenarios()
 
 
 def _id(path: Path) -> str:
@@ -50,13 +52,12 @@ def test_invalid_input(path, engine_without_llm):
 def test_scenario(path, engine, gemini):
     case = _load(path)
     exp = case["expect"]
-    calls_before = gemini.calls
     state = engine.submit(case["request"])
 
     # The request really went through Gemini.
     _check(state.get("llm_provider") == "gemini" and "understanding" in state,
            case, "the request was understood by the real Gemini model", state)
-    assert gemini.calls > calls_before, "this prompt was not sent to Gemini"
+    assert gemini.answered(case["request"]["request_text"]), "this prompt was not answered by Gemini"
 
     und = state["understanding"]
     decision = state.get("decision") or {}

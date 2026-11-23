@@ -2,7 +2,9 @@
 CLI:  python -m app <command>
 
   reset                                  fresh runtime (directory copy, empty state + audit)
-  submit  <request.json>                 steps 1-4, stops for approval
+  scenario                               list all scenarios (data/scenarios/)
+  scenario <name>                        run one scenario and compare it to its expected result
+  submit  <name | file.json>             steps 1-4, stops for approval
   approve <REQ-id> --by <user_id>        step 5 (human approval)
   reject  <REQ-id> --by <user_id> --reason "..."
   execute <REQ-id> [--simulate-failure timeout|flaky]   steps 6-7
@@ -21,6 +23,7 @@ from pathlib import Path
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # Windows console: box/check characters
 
+from . import scenarios
 from .engine import (ApprovalError, ApprovalRequired, Engine, IntakeValidationError,
                      reset_runtime)
 
@@ -55,6 +58,42 @@ def show(state: dict) -> None:
     if state.get("error"):
         print(f"  Error   : {state['error']}")
     print()
+
+
+def list_scenarios() -> None:
+    labels = {"allow": "ALLOW      -> AWAITING_APPROVAL", "needs_info": "NEEDS_INFO -> NEEDS_INFO",
+              "blocked": "BLOCKED    -> BLOCKED", "invalid": "INVALID    -> rejected at intake"}
+    for group in scenarios.GROUPS:
+        print(f"\n  {labels[group]}")
+        for path in scenarios.all_scenarios():
+            if path.parent.name == group:
+                print(f"    {scenarios.name_of(path):<48} {scenarios.load(path)['description']}")
+    print("\n  Run one:  python -m app scenario <name>      e.g.  python -m app scenario allow/00_happy_path\n")
+
+
+def run_scenario(eng: Engine, ref: str) -> int:
+    case = scenarios.load(ref)
+    expected = case["expect"].get("status", "?")
+    print(f"\n  Scenario: {scenarios.name_of(scenarios.resolve(ref))}")
+    print(f"  About   : {case['description']}")
+    print(f"  Text    : {case['request'].get('request_text', '')}")
+    try:
+        state = eng.submit(case["request"])
+    except IntakeValidationError as err:
+        got = "INPUT_REJECTED"
+        print("\n  ✗ INPUT REJECTED (nothing was created, the model was not called):")
+        for x in err.errors:
+            print(f"    - {x}")
+    else:
+        got = state["status"]
+        show(state)
+        und = state.get("understanding") or {}
+        if und:
+            print(f"  Gemini understood: system={und.get('system')} level={und.get('access_level')} "
+                  f"duration={und.get('duration_days')} intent={und.get('intent')}")
+    ok = got == expected
+    print(f"\n  Expected: {expected}   Got: {got}   {'✓ as expected' if ok else '✗ DIFFERENT'}\n")
+    return 0 if ok else 1
 
 
 def interactive(eng: Engine) -> None:
@@ -94,7 +133,8 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="python -m app")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("reset")
-    s = sub.add_parser("submit"); s.add_argument("file", type=Path)
+    s = sub.add_parser("submit"); s.add_argument("file", help="scenario name or path to a JSON file")
+    sc = sub.add_parser("scenario"); sc.add_argument("name", nargs="?")
     for name in ("approve", "reject"):
         p = sub.add_parser(name); p.add_argument("rid"); p.add_argument("--by", required=True)
         p.add_argument("--reason", default="")
@@ -108,6 +148,13 @@ def main(argv=None) -> int:
 
     if args.cmd == "reset":
         reset_runtime(); print("runtime reset."); return 0
+    if args.cmd == "scenario" and not args.name:
+        list_scenarios(); return 0
+    if args.cmd in ("submit", "scenario"):
+        try:
+            scenarios.resolve(args.file if args.cmd == "submit" else args.name)
+        except FileNotFoundError as err:
+            print(f"\n  ✗ {err}\n"); return 6
 
     try:
         eng = Engine()
@@ -117,7 +164,9 @@ def main(argv=None) -> int:
         return 5
     try:
         if args.cmd == "submit":
-            show(eng.submit(json.loads(args.file.read_text(encoding="utf-8"))))
+            show(eng.submit(scenarios.request(args.file)))
+        elif args.cmd == "scenario":
+            return run_scenario(eng, args.name)
         elif args.cmd in ("approve", "reject"):
             show(eng.decide(args.rid, args.by, args.cmd == "approve", args.reason))
         elif args.cmd == "execute":
@@ -141,6 +190,8 @@ def main(argv=None) -> int:
         print(f"\n  ✗ BLOCKED: {err}\n"); return 3
     except KeyError as err:
         print(f"\n  ✗ {err}\n"); return 4
+    except FileNotFoundError as err:
+        print(f"\n  ✗ {err}\n"); return 6
     return 0
 
 

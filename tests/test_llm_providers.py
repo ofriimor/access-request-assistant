@@ -50,7 +50,7 @@ def test_engine_stops_before_action_when_llm_service_fails(engine_without_llm):
             raise LLMServiceError('LLM API HTTP 503')
     eng = engine_without_llm
     eng.llm = GeminiOutage()
-    state = eng.submit(load_request('01_happy_path.json'))
+    state = eng.submit(load_request('allow/00_happy_path'))
     assert state['status'] == 'FAILED_SAFE'
     assert 'plan' not in state
     assert state['error'] == 'LLM API HTTP 503'

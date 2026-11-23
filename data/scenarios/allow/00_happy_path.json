@@ -1,0 +1,16 @@
+{
+  "description": "Main demo: Noa (Sales) asks for CRM write access",
+  "request": {
+    "external_ref": "TCK-1001",
+    "requester_id": "u1002",
+    "target_user_id": "u1002",
+    "request_text": "Hi, I need write access to the CRM for 90 days because I am taking over the northern region accounts from Avi and need to update deals and contacts."
+  },
+  "expect": {
+    "status": "AWAITING_APPROVAL",
+    "system": "crm",
+    "access_level": "write",
+    "duration_days": 90,
+    "approver": "u1001"
+  }
+}

@@ -10,7 +10,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="LLM" src="https://img.shields.io/badge/LLM-Google%20Gemini-4285F4?logo=google&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-68%20%C2%B7%20real%20Gemini-2EA44F">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-72%20%C2%B7%20real%20Gemini-2EA44F">
   <img alt="Use case" src="https://img.shields.io/badge/Use%20Case-3%20%C2%B7%20Access%20Request-6A4DF5">
 </p>
 
@@ -165,8 +165,11 @@ LLM_MODEL=gemini-3.5-flash-lite
 | דמו מלא: בדיקות, כל התרחישים ודוח As-Built | `python demo.py --require-real-llm` |
 | דמו חי, עם עצירה בין התרחישים | `python demo.py --pause --require-real-llm` |
 | שמירת תוצרי הריצה בתיקייה `evidence/` | `python demo.py --require-real-llm --save-evidence` |
+| רשימת כל התרחישים | `python -m app scenario` |
+| הרצת תרחיש אחד והשוואה לתוצאה הצפויה | `python -m app scenario allow/02_marketing_crm_read_hebrew` |
 | שליחת בקשה משלך והחלטה בתור המנהל | `python -m app interactive` |
-| הרצת הבדיקות האוטומטיות מול Gemini | `python -m pytest -v` |
+| הרצת כל הבדיקות האוטומטיות מול Gemini | `python -m pytest -v` |
+| בדיקה אוטומטית של תרחיש אחד | `python -m pytest tests/test_scenarios.py -v -k hebrew` |
 
 **התוצרים:** `reports/as_built.html` (דוח המסירה), `runtime/audit.jsonl` (תיעוד הריצה), `runtime/test_results.xml` (תוצאות הבדיקות).
 
@@ -176,7 +179,7 @@ LLM_MODEL=gemini-3.5-flash-lite
 
 ```bash
 python -m app reset
-python -m app submit data/requests/01_happy_path.json   # -> AWAITING_APPROVAL, prints REQ-<id>
+python -m app submit allow/00_happy_path                # -> AWAITING_APPROVAL, prints REQ-<id>
 python -m app execute REQ-<id>                           # blocked: no approval
 python -m app approve REQ-<id> --by u1001                # the direct manager approves
 python -m app execute REQ-<id>                           # executes and verifies -> COMPLETED
@@ -190,18 +193,31 @@ python -m app report
 
 ---
 
-## תרחישי ההדגמה
+## התרחישים
 
-| # | קובץ | תרחיש | תוצאה צפויה |
+כל הבקשות לדוגמה בפרויקט נמצאות בתיקייה אחת, `data/scenarios/`. כל קובץ הוא בקשה בטקסט חופשי, עם תיאור ועם התוצאה שהמערכת חייבת להגיע אליה. אותה תיקייה משמשת את הדמו, את ה־CLI ואת הבדיקות האוטומטיות.
+
+| תיקייה | תוצאה צפויה | מה יש בה |
+|---|---|---|
+| `allow/` (12) | `AWAITING_APPROVAL`, ואחרי אישור וביצוע `COMPLETED` | בקשה רגילה, בקשה בעברית, "Salesforce" במקום crm, משך בחודשים, בלי משך (ברירת מחדל), שנה ושנתיים (נחתך לתקרה), טקסט עם שגיאות כתיב, מנהל שמגיש בשם עובד |
+| `needs_info/` (7) | `NEEDS_INFO`, בלי תוכנית | בקשה עמומה, בלי סיבה עסקית, מערכת שלא קיימת (Jira), שאלה שאינה בקשת הרשאה, בקשה להסרת הרשאה, שתי בקשות בטקסט אחד |
+| `blocked/` (12) | `BLOCKED`, עם הסיבה הנכונה | admin, Injection באנגלית ובעברית, מחלקה לא מורשית, רמה מעל המקסימום, משתמש מושבת, משתמש שלא קיים, עמית שמבקש בשם אחר, אין מנהל שיאשר, טענה על תפקיד |
+| `invalid/` (3) | נדחה בקליטה, בלי לפנות למודל | טקסט קצר מדי, מזהה משתמש בפורמט שגוי, שדה חובה חסר |
+
+כדי להוסיף מקרה חדש, מוסיפים קובץ JSON לתיקייה המתאימה, בלי לשנות קוד.
+
+### התרחישים שבדמו
+
+| # | תרחיש בדמו | הקובץ | תוצאה צפויה |
 |---|---|---|---|
-| 1 | `01_happy_path.json` | עובדת מכירות מבקשת הרשאת כתיבה ל־CRM | `AWAITING_APPROVAL` ← `APPROVED` ← `COMPLETED` |
-| 2 | `02_missing_info.json` | "I need access to the system" | `NEEDS_INFO` |
-| 3א | `03_blocked_admin.json` | הרשאת admin למסד הנתונים של Production | `BLOCKED` (סעיף 1) |
-| 3ב | `04_prompt_injection.json` | "IGNORE ALL PREVIOUS INSTRUCTIONS…" | `BLOCKED` (סעיף 7) |
-| 3ג | `05_rejected_by_manager.json` | המנהל דוחה את הבקשה | `REJECTED`, והביצוע נחסם |
-| 4 | `06_tool_failure.json` | ה־Directory לא מגיב | `FAILED_SAFE`, ובהרצה חוזרת `COMPLETED` |
-| 5 | הרצה חוזרת של תרחיש 1 | אותה בקשה נשלחת ומבוצעת שוב | הרשומה הקיימת מוחזרת, ועדיין יש הרשאה אחת |
-| – | `07_invalid_input.json` | חסר השדה `requester_id` | הקלט נדחה, ולא נוצרת רשומה |
+| 1 | עובדת מכירות מבקשת הרשאת כתיבה ל־CRM | `allow/00_happy_path` | `AWAITING_APPROVAL` ← `APPROVED` ← `COMPLETED` |
+| 2 | "I need access to the system" | `needs_info/01_vague_request` | `NEEDS_INFO` |
+| 2ב | חסר השדה `requester_id` | `invalid/03_missing_requester_and_short_text` | הקלט נדחה, ולא נוצרת רשומה |
+| 3א | הרשאת admin למסד הנתונים של Production | `blocked/01_admin_production_db` | `BLOCKED` (סעיף 1) |
+| 3ב | "IGNORE ALL PREVIOUS INSTRUCTIONS…" | `blocked/02_prompt_injection_english` | `BLOCKED` (סעיף 7) |
+| 3ג | המנהל דוחה את הבקשה | `allow/10_support_crm_write_escalations` | `REJECTED`, והביצוע נחסם |
+| 4 | ה־Directory לא מגיב | `allow/11_manager_requests_for_employee` | `FAILED_SAFE`, ובהרצה חוזרת `COMPLETED` |
+| 5 | אותה בקשה נשלחת ומבוצעת שוב | `allow/00_happy_path` | הרשומה הקיימת מוחזרת, ועדיין יש הרשאה אחת |
 
 ---
 
@@ -246,7 +262,8 @@ flowchart TB
 | `app/config.py` | טוען את ההגדרות מקובץ `.env` |
 | `app/__main__.py` | פקודות ה־CLI והמצב האינטראקטיבי |
 | `demo.py` | מריץ את הבדיקות ואת כל התרחישים בפקודה אחת |
-| `tests/` | 68 בדיקות אוטומטיות שרצות מול Gemini האמיתי, כולל 30 תרחישי פרומפט בתיקייה `tests/scenarios/` |
+| `app/scenarios.py` | טוען תרחישים מהתיקייה `data/scenarios/` לפי שם, עבור הדמו, ה־CLI והבדיקות |
+| `tests/` | 72 בדיקות אוטומטיות שרצות מול Gemini האמיתי, כולל 34 התרחישים |
 
 ### מבנה התיקיות
 
@@ -259,9 +276,9 @@ access-request-assistant/
 ├── data/
 │   ├── directory.json   # 12 users: departments, managers, one disabled user
 │   ├── policies/        # 5 Markdown policies with machine-readable headers
-│   └── requests/        # 7 sample requests, one per scenario
+│   └── scenarios/       # 34 sample requests with expected outcomes:
+│                        #   allow / needs_info / blocked / invalid
 ├── tests/               # automated tests against the real Gemini API
-│   └── scenarios/       # 30 real prompts: allow / needs_info / blocked / invalid
 ├── docs/
 │   ├── ARCHITECTURE.md  # architecture and Design vs. As-Built
 │   └── RUNBOOK.md       # operation and troubleshooting
@@ -286,34 +303,23 @@ python -m pytest -v
 
 <div dir="rtl">
 
-יש 68 בדיקות, בארבע קבוצות:
+יש 72 בדיקות, בארבע קבוצות:
 
 | קבוצה | קובץ | מה נבדק |
 |---|---|---|
-| **תרחישי פרומפט** (30) | `test_scenarios.py` + `tests/scenarios/` | 30 בקשות שונות בטקסט חופשי, שכל אחת נשלחת ל־Gemini, מסודרות בתיקיות לפי התוצאה הצפויה |
+| **התרחישים** (34) | `test_scenarios.py` | כל תרחיש בתיקייה `data/scenarios/` נשלח ל־Gemini, והתוצאה נבדקת מול התוצאה הצפויה. בתרחישים המותרים הבדיקה ממשיכה לאישור, לביצוע ולאימות |
 | **הזרימה והמנגנונים** | `test_flow.py` | המסלול התקין, חסימת ביצוע בלי אישור, אישור רק של המנהל הישיר, שינוי תוכנית אחרי אישור, תקלות בכלים, הרצה חוזרת ו־Idempotency |
 | **ההבנה של Gemini** | `test_gemini_understanding.py` | חילוץ שדות, עברית, שם מוצר, טענה בטקסט ושגיאת 404 אמיתית מה־API |
 | **הספק ותקלות שירות** | `test_llm_providers.py` | הגדרות המפתח והספק, קריאה אמיתית ל־Gemini, ועצירה בטוחה כשהשירות נופל |
 
-### תרחישי הפרומפט
-
-כל קובץ JSON בתיקייה `tests/scenarios/` הוא בקשה אמיתית, עם התוצאה שהמערכת חייבת להגיע אליה:
-
-| תיקייה | תוצאה צפויה | דוגמאות |
-|---|---|---|
-| `allow/` (9) | `AWAITING_APPROVAL`, ואחרי אישור וביצוע `COMPLETED` | בקשה בעברית, "Salesforce" במקום crm, משך בחודשים, בלי משך (ברירת מחדל), שנה ושנתיים (נחתך לתקרה), טקסט עם שגיאות כתיב |
-| `needs_info/` (7) | `NEEDS_INFO`, בלי תוכנית | בקשה עמומה, בלי סיבה עסקית, מערכת שלא קיימת (Jira), שאלה שאינה בקשת הרשאה, בקשה להסרת הרשאה, שתי בקשות בטקסט אחד |
-| `blocked/` (12) | `BLOCKED`, עם הסיבה הנכונה | admin, Injection באנגלית ובעברית, מחלקה לא מורשית, רמה מעל המקסימום, משתמש מושבת, משתמש שלא קיים, עמית שמבקש בשם אחר, אין מנהל שיאשר, טענה על תפקיד |
-| `invalid/` (2) | נדחה בקליטה, בלי לפנות למודל | טקסט קצר מדי, מזהה משתמש בפורמט שגוי |
-
-כדי להוסיף מקרה חדש, מוסיפים קובץ JSON לתיקייה המתאימה, בלי לשנות קוד. כל תרחיש בודק גם שהבקשה באמת נשלחה ל־Gemini.
+כל תרחיש בודק גם שהבקשה באמת נשלחה ל־Gemini ושהוא ענה עליה. הפירוט של התרחישים מופיע בסעיף [התרחישים](#התרחישים).
 
 **מה מודמה, ולמה.** המודל עצמו לא מודמה אף פעם. מודמים רק **כשלים** שאי אפשר לייצר בכוונה מול שירות אמיתי: Timeout של כלי, נתון פגום מה־Directory, מודל שנפרץ ומחזיר פרמטר זדוני, נפילת רשת, ותשובה ריקה מ־Gemini. בדיקות שמוכיחות שהקלט נעצר **לפני** הקריאה למודל משתמשות במנגנון שמכשיל את הבדיקה אם המודל נקרא בכלל.
 
 **הערות:**
 - הבדיקות דורשות מפתח בקובץ `.env` וצורכות מכסת API. בלי מפתח, הבדיקות שצריכות את Gemini מדולגות עם הודעה ברורה.
 - בקשה זהה נשלחת ל־Gemini פעם אחת בכל הרצה, והתשובה האמיתית שלה משמשת שוב בבדיקות אחרות. אם ה־API מחזיר 429 (חריגה ממכסת הבקשות לדקה), הבדיקות ממתינות ומנסות שוב.
-- להרצת תרחישי הפרומפט בלבד: `python -m pytest tests/test_scenarios.py -v`.
+- להרצת התרחישים בלבד: `python -m pytest tests/test_scenarios.py -v`. לתרחיש אחד מוסיפים `-k` וחלק מהשם, למשל `-k hebrew`.
 - הבדיקות בודקות רק שדות מרשימה סגורה וסטטוסים סופיים, ולא טקסט חופשי, כך שהתוצאה יציבה גם כשהמודל מנסח אחרת.
 
 ---
