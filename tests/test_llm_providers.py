@@ -108,3 +108,22 @@ def test_unavailable_model_fails_safe(tmp_path, monkeypatch, gemini):
     assert not any(e["event"] == "tool_call" and e["data"].get("tool") == "grant_access"
                    for e in eng.audit.read())
     eng.store.close()
+
+
+def test_rate_limit_is_retried_patiently(monkeypatch):
+    """Failure simulation: Gemini answers 429 (quota per minute) twice, then succeeds."""
+    import io
+    import urllib.error
+    calls, waits = [], []
+
+    def fake_urlopen(request, timeout):
+        calls.append(1)
+        if len(calls) <= 2:
+            raise urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", {}, None)
+        return io.BytesIO(b'{"ok": true}')
+
+    monkeypatch.setattr("app.llm.urllib.request.urlopen", fake_urlopen)
+    monkeypatch.setattr("app.llm.time.sleep", waits.append)
+    assert _post_json("https://example.invalid", {}, {}) == {"ok": True}
+    assert len(calls) == 3 and waits[0] >= 10 and waits[1] >= 20
+

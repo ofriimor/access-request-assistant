@@ -87,19 +87,25 @@ def _post_json(url: str, headers: dict, body: dict, timeout: int = 60) -> dict:
         headers={"content-type": "application/json", **headers},
     )
     retryable = {429, 500, 502, 503, 504}
-    max_attempts = 3
-    for attempt in range(max_attempts):
+    max_attempts = {429: 5}                 # rate limit: wait longer and try more times
+    attempt = 0
+    while True:
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 return json.loads(response.read())
         except urllib.error.HTTPError as exc:
-            if exc.code not in retryable or attempt == max_attempts - 1:
+            if exc.code not in retryable or attempt + 1 >= max_attempts.get(exc.code, 3):
                 hint = " (model not found or not available for this key - check LLM_MODEL)" if exc.code == 404 else ""
                 raise LLMServiceError(f"LLM API HTTP {exc.code}{hint}") from None
-            # Honor a small numeric Retry-After, otherwise exponential backoff.
             retry_after = exc.headers.get("Retry-After", "") if exc.headers else ""
-            delay = min(float(retry_after), 15) if retry_after.isdigit() else min(2 ** (attempt + 1), 15)
+            if retry_after.isdigit():
+                delay = min(float(retry_after), 60)
+            elif exc.code == 429:
+                delay = 10 * (attempt + 1)  # 10, 20, 30, 40 s: per-minute quota
+            else:
+                delay = min(2 ** (attempt + 1), 15)
             time.sleep(delay + random.uniform(0, 0.3))
+            attempt += 1
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             raise LLMServiceError(
                 f"LLM API connection failed ({type(exc).__name__})"
