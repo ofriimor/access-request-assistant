@@ -2,7 +2,7 @@
 
 | File | What it shows | How it was produced |
 | --- | --- | --- |
-| `test_results.xml` | JUnit results of the 72 automated tests (including the 34 scenarios in data/scenarios/), run against the real Gemini API | `python -m pytest --junitxml=evidence/test_results.xml` |
+| `test_results.xml` | JUnit results of the 63 automated tests (including the 34 scenarios in data/scenarios/), run against the real Gemini API | `python -m pytest --junitxml=evidence/test_results.xml` |
 | `pytest_output.txt` | Per-test PASS/FAIL list | `python -m pytest -v` |
 | `as_built.html` | As-Built handover report of a full run | `python demo.py --require-real-llm --save-evidence` |
 | `audit.jsonl` | Full audit trail of that run: steps, LLM extraction, tool calls, approvals, errors, final status | same run |

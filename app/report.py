@@ -134,7 +134,7 @@ def generate(engine, out: Path | None = None) -> Path:
     checked = [x["match"] for x in requests + intake_rejections if x["match"] is not None]
 
     assets = PROJECT_ROOT / "assets"
-    logo = next((_data_uri(assets / n) for n in ("logo-bynet.png", "logo.svg") if (assets / n).exists()), None)
+    logo = _data_uri(assets / "logo-bynet.png") if (assets / "logo-bynet.png").exists() else None
     client_logo = next((_data_uri(assets / n) for n in ("client-logo.svg", "client-logo.png")
                         if (assets / n).exists()), None)
 

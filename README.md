@@ -10,7 +10,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="LLM" src="https://img.shields.io/badge/LLM-Google%20Gemini-4285F4?logo=google&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-72%20%C2%B7%20real%20Gemini-2EA44F">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-63%20%C2%B7%20real%20Gemini-2EA44F">
   <img alt="Use case" src="https://img.shields.io/badge/Use%20Case-3%20%C2%B7%20Access%20Request-6A4DF5">
 </p>
 
@@ -284,7 +284,7 @@ flowchart TB
 | `app/__main__.py` | פקודות ה־CLI והמצב האינטראקטיבי |
 | `demo.py` | מריץ את הבדיקות ואת כל התרחישים בפקודה אחת |
 | `app/scenarios.py` | טוען תרחישים מהתיקייה `data/scenarios/` לפי שם, עבור הדמו, ה־CLI והבדיקות |
-| `tests/` | 72 בדיקות אוטומטיות שרצות מול Gemini האמיתי, כולל 34 התרחישים |
+| `tests/` | 63 בדיקות אוטומטיות שרצות מול Gemini האמיתי, כולל 34 התרחישים |
 
 ### מבנה התיקיות
 
@@ -301,7 +301,6 @@ access-request-assistant/
 │                        #   allow / needs_info / blocked / invalid
 ├── tests/               # automated tests against the real Gemini API
 ├── docs/
-│   ├── ARCHITECTURE.md  # architecture and Design vs. As-Built
 │   └── RUNBOOK.md       # operation and troubleshooting
 ├── evidence/            # test results and run artifacts
 ├── demo.py
@@ -324,14 +323,13 @@ python -m pytest -v
 
 <div dir="rtl">
 
-יש 72 בדיקות, בארבע קבוצות:
+יש 63 בדיקות, בשלוש קבוצות:
 
 | קבוצה | קובץ | מה נבדק |
 |---|---|---|
 | **התרחישים** (34) | `test_scenarios.py` | כל תרחיש בתיקייה `data/scenarios/` נשלח ל־Gemini, והתוצאה נבדקת מול התוצאה הצפויה. בתרחישים המותרים הבדיקה ממשיכה לאישור, לביצוע ולאימות |
-| **הזרימה והמנגנונים** | `test_flow.py` | המסלול התקין, חסימת ביצוע בלי אישור, אישור רק של המנהל הישיר, שינוי תוכנית אחרי אישור, תקלות בכלים, הרצה חוזרת ו־Idempotency |
-| **ההבנה של Gemini** | `test_gemini_understanding.py` | חילוץ שדות, עברית, שם מוצר, טענה בטקסט ושגיאת 404 אמיתית מה־API |
-| **הספק ותקלות שירות** | `test_llm_providers.py` | הגדרות המפתח והספק, קריאה אמיתית ל־Gemini, ועצירה בטוחה כשהשירות נופל |
+| **המנגנונים** | `test_flow.py` | המסלול המלא, חסימת ביצוע בלי אישור, דחייה, אישור רק של המנהל הישיר, שינוי תוכנית אחרי אישור, תקלות בכלים והתאוששות, נתון פגום, הרצה חוזרת ו־Idempotency, מודל פרוץ ופרמטרים זדוניים לכלים |
+| **Gemini ותקלות שירות** | `test_llm_providers.py` | הגדרות המפתח והספק, קריאות אמיתיות ל־Gemini, שגיאת 404 אמיתית מה־API, ועצירה בטוחה כשהשירות נופל |
 
 כל תרחיש בודק גם שהבקשה באמת נשלחה ל־Gemini ושהוא ענה עליה. הפירוט של התרחישים מופיע בסעיף [התרחישים](#התרחישים).
 
@@ -354,7 +352,6 @@ python -m pytest -v
 | ביצוע על מערכת | כתיבה ל־Directory מקומי בקובץ JSON, שמדמה IdP | המשימה מתירה מערכת מדומה, והכלים מוגדרים עם סכמה כך שאפשר להחליף אותם |
 | אישור אנושי | קשור ל־hash של התוכנית, ורק על ידי המנהל הישיר | כל אישור חל על תוכנית אחת מדויקת |
 
-לפירוט המלא: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## הנחות
 
@@ -378,7 +375,6 @@ python -m pytest -v
 
 ## תיעוד נוסף
 
-- [ארכיטקטורה ו־Design מול As-Built](docs/ARCHITECTURE.md)
 - [Runbook: התקנה, תפעול וטיפול בתקלות](docs/RUNBOOK.md)
 - [Evidence: תוצאות בדיקות ותוצרי ריצה](evidence/README.md)
 
