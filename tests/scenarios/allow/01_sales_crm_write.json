@@ -1,0 +1,15 @@
+{
+  "description": "Sales employee asks for CRM write access with a reason and duration",
+  "request": {
+    "requester_id": "u1003",
+    "target_user_id": "u1003",
+    "request_text": "I need write access to the CRM for 60 days because I took over the southern region accounts"
+  },
+  "expect": {
+    "status": "AWAITING_APPROVAL",
+    "system": "crm",
+    "access_level": "write",
+    "duration_days": 60,
+    "approver": "u1001"
+  }
+}

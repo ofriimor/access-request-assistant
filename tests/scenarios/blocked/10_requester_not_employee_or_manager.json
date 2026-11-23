@@ -1,0 +1,12 @@
+{
+  "description": "A colleague asks on someone else's behalf (POL-GEN-00 §2)",
+  "request": {
+    "requester_id": "u1003",
+    "target_user_id": "u1002",
+    "request_text": "Please give Noa write access to the CRM for 30 days because she covers my accounts"
+  },
+  "expect": {
+    "status": "BLOCKED",
+    "reason_contains": "§2"
+  }
+}

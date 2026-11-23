@@ -1,0 +1,15 @@
+{
+  "description": "One year requested: capped to the CRM maximum of 180 days",
+  "request": {
+    "requester_id": "u1003",
+    "target_user_id": "u1003",
+    "request_text": "I need write access to the CRM for a year because I own the enterprise accounts"
+  },
+  "expect": {
+    "status": "AWAITING_APPROVAL",
+    "system": "crm",
+    "access_level": "write",
+    "duration_days": 180,
+    "assumption_contains": "capped"
+  }
+}

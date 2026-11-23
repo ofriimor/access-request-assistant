@@ -1,0 +1,15 @@
+{
+  "description": "Two years (730 days) requested: capped, not treated as an error",
+  "request": {
+    "requester_id": "u1009",
+    "target_user_id": "u1009",
+    "request_text": "I need read access to the CRM for 2 years because I manage long-term partner accounts"
+  },
+  "expect": {
+    "status": "AWAITING_APPROVAL",
+    "system": "crm",
+    "access_level": "read",
+    "duration_days": 180,
+    "assumption_contains": "capped"
+  }
+}

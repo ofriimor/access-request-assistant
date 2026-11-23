@@ -1,0 +1,15 @@
+{
+  "description": "Product name (Salesforce) instead of the system code",
+  "request": {
+    "requester_id": "u1007",
+    "target_user_id": "u1007",
+    "request_text": "I handle customer escalations and need to edit case notes in Salesforce for 30 days"
+  },
+  "expect": {
+    "status": "AWAITING_APPROVAL",
+    "system": "crm",
+    "access_level": "write",
+    "duration_days": 30,
+    "approver": "u1012"
+  }
+}

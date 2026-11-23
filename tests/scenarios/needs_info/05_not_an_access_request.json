@@ -1,0 +1,13 @@
+{
+  "description": "Not an access request at all",
+  "request": {
+    "requester_id": "u1003",
+    "target_user_id": "u1003",
+    "request_text": "How do I reset my password? I keep getting locked out of my laptop"
+  },
+  "expect": {
+    "status": "NEEDS_INFO",
+    "intent": "other",
+    "missing_contains": "intent"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "description": "No duration: the policy default (90 days) is used and recorded as an assumption",
+  "request": {
+    "requester_id": "u1009",
+    "target_user_id": "u1009",
+    "request_text": "I need read access to the CRM because I am preparing a customer presentation"
+  },
+  "expect": {
+    "status": "AWAITING_APPROVAL",
+    "system": "crm",
+    "access_level": "read",
+    "duration_days": 90,
+    "assumption_contains": "policy default"
+  }
+}

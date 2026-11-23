@@ -1,0 +1,12 @@
+{
+  "description": "Fewer than 15 characters - rejected before the model is called",
+  "request": {
+    "requester_id": "u1003",
+    "target_user_id": "u1003",
+    "request_text": "CRM pls"
+  },
+  "expect": {
+    "status": "INPUT_REJECTED",
+    "error_contains": "request_text"
+  }
+}

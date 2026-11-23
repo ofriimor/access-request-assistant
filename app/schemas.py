@@ -38,7 +38,7 @@ class Understanding(Strict):
     intent: Literal["grant_access", "other"]
     system: Optional[SystemName] = None
     access_level: Optional[AccessLevel] = None
-    duration_days: Optional[int] = Field(default=None, ge=1, le=365)
+    duration_days: Optional[int] = Field(default=None, ge=1, le=3650)  # the policy caps it; the schema only rejects nonsense
     justification: Optional[str] = Field(default=None, max_length=500)
     gaps: list[str] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)

@@ -1,0 +1,12 @@
+{
+  "description": "The employee is disabled in the directory (POL-GEN-00 §4)",
+  "request": {
+    "requester_id": "u1013",
+    "target_user_id": "u1013",
+    "request_text": "I need read access to the CRM because I am back from leave and need to see my accounts"
+  },
+  "expect": {
+    "status": "BLOCKED",
+    "reason_contains": "§4"
+  }
+}

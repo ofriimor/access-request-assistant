@@ -1,0 +1,15 @@
+{
+  "description": "Request written in Hebrew",
+  "request": {
+    "requester_id": "u1005",
+    "target_user_id": "u1005",
+    "request_text": "אני צריכה הרשאת קריאה למערכת ה-CRM ל-30 יום כדי להכין דוחות קמפיין"
+  },
+  "expect": {
+    "status": "AWAITING_APPROVAL",
+    "system": "crm",
+    "access_level": "read",
+    "duration_days": 30,
+    "approver": "u1011"
+  }
+}

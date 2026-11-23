@@ -10,7 +10,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="LLM" src="https://img.shields.io/badge/LLM-Google%20Gemini-4285F4?logo=google&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-38%20%C2%B7%20real%20Gemini-2EA44F">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-68%20%C2%B7%20real%20Gemini-2EA44F">
   <img alt="Use case" src="https://img.shields.io/badge/Use%20Case-3%20%C2%B7%20Access%20Request-6A4DF5">
 </p>
 
@@ -246,7 +246,7 @@ flowchart TB
 | `app/config.py` | טוען את ההגדרות מקובץ `.env` |
 | `app/__main__.py` | פקודות ה־CLI והמצב האינטראקטיבי |
 | `demo.py` | מריץ את הבדיקות ואת כל התרחישים בפקודה אחת |
-| `tests/` | 38 בדיקות אוטומטיות שרצות מול Gemini האמיתי |
+| `tests/` | 68 בדיקות אוטומטיות שרצות מול Gemini האמיתי, כולל 30 תרחישי פרומפט בתיקייה `tests/scenarios/` |
 
 ### מבנה התיקיות
 
@@ -261,6 +261,7 @@ access-request-assistant/
 │   ├── policies/        # 5 Markdown policies with machine-readable headers
 │   └── requests/        # 7 sample requests, one per scenario
 ├── tests/               # automated tests against the real Gemini API
+│   └── scenarios/       # 30 real prompts: allow / needs_info / blocked / invalid
 ├── docs/
 │   ├── ARCHITECTURE.md  # architecture and Design vs. As-Built
 │   └── RUNBOOK.md       # operation and troubleshooting
@@ -285,19 +286,34 @@ python -m pytest -v
 
 <div dir="rtl">
 
-יש 38 בדיקות, בשלוש קבוצות:
+יש 68 בדיקות, בארבע קבוצות:
 
 | קבוצה | קובץ | מה נבדק |
 |---|---|---|
-| **הזרימה ותרחישי החובה** | `test_flow.py` | בדיקת קלט, התאמה לנוהל, המסלול התקין, חסימת ביצוע בלי אישור, אישור רק של המנהל הישיר, שינוי תוכנית אחרי אישור, מידע חסר, חסימה לפי נוהל, תקלות בכלים, הרצה חוזרת ו־Idempotency, Prompt Injection וטענות בטקסט |
-| **ההבנה של Gemini** | `test_gemini_understanding.py` | חילוץ שדות, בקשה **בעברית**, סיווג של "Salesforce" ל־`crm`, התעלמות מטענה "I am the Sales manager", ושגיאת 404 אמיתית מה־API |
+| **תרחישי פרומפט** (30) | `test_scenarios.py` + `tests/scenarios/` | 30 בקשות שונות בטקסט חופשי, שכל אחת נשלחת ל־Gemini, מסודרות בתיקיות לפי התוצאה הצפויה |
+| **הזרימה והמנגנונים** | `test_flow.py` | המסלול התקין, חסימת ביצוע בלי אישור, אישור רק של המנהל הישיר, שינוי תוכנית אחרי אישור, תקלות בכלים, הרצה חוזרת ו־Idempotency |
+| **ההבנה של Gemini** | `test_gemini_understanding.py` | חילוץ שדות, עברית, שם מוצר, טענה בטקסט ושגיאת 404 אמיתית מה־API |
 | **הספק ותקלות שירות** | `test_llm_providers.py` | הגדרות המפתח והספק, קריאה אמיתית ל־Gemini, ועצירה בטוחה כשהשירות נופל |
+
+### תרחישי הפרומפט
+
+כל קובץ JSON בתיקייה `tests/scenarios/` הוא בקשה אמיתית, עם התוצאה שהמערכת חייבת להגיע אליה:
+
+| תיקייה | תוצאה צפויה | דוגמאות |
+|---|---|---|
+| `allow/` (9) | `AWAITING_APPROVAL`, ואחרי אישור וביצוע `COMPLETED` | בקשה בעברית, "Salesforce" במקום crm, משך בחודשים, בלי משך (ברירת מחדל), שנה ושנתיים (נחתך לתקרה), טקסט עם שגיאות כתיב |
+| `needs_info/` (7) | `NEEDS_INFO`, בלי תוכנית | בקשה עמומה, בלי סיבה עסקית, מערכת שלא קיימת (Jira), שאלה שאינה בקשת הרשאה, בקשה להסרת הרשאה, שתי בקשות בטקסט אחד |
+| `blocked/` (12) | `BLOCKED`, עם הסיבה הנכונה | admin, Injection באנגלית ובעברית, מחלקה לא מורשית, רמה מעל המקסימום, משתמש מושבת, משתמש שלא קיים, עמית שמבקש בשם אחר, אין מנהל שיאשר, טענה על תפקיד |
+| `invalid/` (2) | נדחה בקליטה, בלי לפנות למודל | טקסט קצר מדי, מזהה משתמש בפורמט שגוי |
+
+כדי להוסיף מקרה חדש, מוסיפים קובץ JSON לתיקייה המתאימה, בלי לשנות קוד. כל תרחיש בודק גם שהבקשה באמת נשלחה ל־Gemini.
 
 **מה מודמה, ולמה.** המודל עצמו לא מודמה אף פעם. מודמים רק **כשלים** שאי אפשר לייצר בכוונה מול שירות אמיתי: Timeout של כלי, נתון פגום מה־Directory, מודל שנפרץ ומחזיר פרמטר זדוני, נפילת רשת, ותשובה ריקה מ־Gemini. בדיקות שמוכיחות שהקלט נעצר **לפני** הקריאה למודל משתמשות במנגנון שמכשיל את הבדיקה אם המודל נקרא בכלל.
 
 **הערות:**
 - הבדיקות דורשות מפתח בקובץ `.env` וצורכות מכסת API. בלי מפתח, הבדיקות שצריכות את Gemini מדולגות עם הודעה ברורה.
-- בקשה זהה נשלחת ל־Gemini פעם אחת בכל הרצה, והתשובה האמיתית שלה משמשת שוב בבדיקות אחרות. זה חוסך קריאות ומונע חריגה ממגבלת הקצב של ה־API.
+- בקשה זהה נשלחת ל־Gemini פעם אחת בכל הרצה, והתשובה האמיתית שלה משמשת שוב בבדיקות אחרות. אם ה־API מחזיר 429 (חריגה ממכסת הבקשות לדקה), הבדיקות ממתינות ומנסות שוב.
+- להרצת תרחישי הפרומפט בלבד: `python -m pytest tests/test_scenarios.py -v`.
 - הבדיקות בודקות רק שדות מרשימה סגורה וסטטוסים סופיים, ולא טקסט חופשי, כך שהתוצאה יציבה גם כשהמודל מנסח אחרת.
 
 ---

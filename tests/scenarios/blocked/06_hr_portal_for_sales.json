@@ -1,0 +1,13 @@
+{
+  "description": "Sales asks for the HR portal (HR and Management only)",
+  "request": {
+    "requester_id": "u1003",
+    "target_user_id": "u1003",
+    "request_text": "I need read access to the HR portal to check my team's vacation balances"
+  },
+  "expect": {
+    "status": "BLOCKED",
+    "system": "hr_portal",
+    "reason_contains": "department 'Sales'"
+  }
+}

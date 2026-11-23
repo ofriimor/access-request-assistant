@@ -1,0 +1,12 @@
+{
+  "description": "The target user does not exist in the directory",
+  "request": {
+    "requester_id": "u1012",
+    "target_user_id": "u2000",
+    "request_text": "Please give Hila read access to the production database because she joins engineering"
+  },
+  "expect": {
+    "status": "BLOCKED",
+    "reason_contains": "does not exist"
+  }
+}

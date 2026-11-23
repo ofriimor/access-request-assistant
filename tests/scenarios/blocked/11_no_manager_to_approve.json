@@ -1,0 +1,12 @@
+{
+  "description": "Nobody can approve: the employee has no direct manager",
+  "request": {
+    "requester_id": "u1000",
+    "target_user_id": "u1000",
+    "request_text": "I need write access to the CRM for 30 days because I review the sales pipeline"
+  },
+  "expect": {
+    "status": "BLOCKED",
+    "reason_contains": "no direct manager"
+  }
+}

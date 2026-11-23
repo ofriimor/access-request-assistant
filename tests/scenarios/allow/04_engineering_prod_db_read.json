@@ -1,0 +1,15 @@
+{
+  "description": "Engineering asks for read-only access to the production database",
+  "request": {
+    "requester_id": "u1004",
+    "target_user_id": "u1004",
+    "request_text": "I need read-only access to the production database for 7 days to investigate a bug in order processing"
+  },
+  "expect": {
+    "status": "AWAITING_APPROVAL",
+    "system": "prod_db",
+    "access_level": "read",
+    "duration_days": 7,
+    "approver": "u1010"
+  }
+}

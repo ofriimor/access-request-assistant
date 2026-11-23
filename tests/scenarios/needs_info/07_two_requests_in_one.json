@@ -1,0 +1,12 @@
+{
+  "description": "Two different requests in one text",
+  "request": {
+    "requester_id": "u1003",
+    "target_user_id": "u1003",
+    "request_text": "I need write access to the CRM because I took over new accounts, and also read access to the production database to check orders"
+  },
+  "expect": {
+    "status": "NEEDS_INFO",
+    "missing_contains": "llm-gap"
+  }
+}

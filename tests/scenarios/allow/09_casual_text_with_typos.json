@@ -1,0 +1,13 @@
+{
+  "description": "Informal text with typos",
+  "request": {
+    "requester_id": "u1003",
+    "target_user_id": "u1003",
+    "request_text": "hey can u give me crm edit acess? im taking over Avi's deals this quarter"
+  },
+  "expect": {
+    "status": "AWAITING_APPROVAL",
+    "system": "crm",
+    "access_level": "write"
+  }
+}

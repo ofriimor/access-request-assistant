@@ -1,0 +1,13 @@
+{
+  "description": "Marketing asks for the production database (Engineering only)",
+  "request": {
+    "requester_id": "u1005",
+    "target_user_id": "u1005",
+    "request_text": "I need read access to the production database because I analyze campaign data"
+  },
+  "expect": {
+    "status": "BLOCKED",
+    "system": "prod_db",
+    "reason_contains": "department 'Marketing'"
+  }
+}
