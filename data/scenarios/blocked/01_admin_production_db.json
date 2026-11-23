@@ -1,9 +1,10 @@
 {
   "description": "Admin access is never granted (POL-GEN-00 §1)",
   "request": {
+    "external_ref": "TCK-1003",
     "requester_id": "u1004",
     "target_user_id": "u1004",
-    "request_text": "I need admin access to the production database because I want to fix some customer data quickly"
+    "request_text": "I need admin access to the production database because I want to fix some customer data quickly."
   },
   "expect": {
     "status": "BLOCKED",

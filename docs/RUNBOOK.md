@@ -23,7 +23,7 @@ Outputs: `reports/as_built.html`, `runtime/audit.jsonl`, `runtime/test_results.x
 
 ```bash
 python -m app reset
-python -m app submit data/requests/01_happy_path.json   # -> AWAITING_APPROVAL, prints REQ-<id>
+python -m app submit allow/00_happy_path                # -> AWAITING_APPROVAL, prints REQ-<id>
 python -m app execute REQ-<id>                           # blocked: no approval
 python -m app approve REQ-<id> --by u1001                # direct manager approves
 python -m app execute REQ-<id>                           # execute + read-back verify -> COMPLETED
@@ -35,17 +35,22 @@ python -m app report
 Reject: `python -m app reject REQ-<id> --by <manager_id> --reason "..."`
 Simulate a tool failure: `python -m app execute REQ-<id> --simulate-failure timeout`
 
-## 4. Demo scenarios (`data/requests/`)
+## 4. Scenarios (`data/scenarios/`)
 
-| File | Scenario | Expected |
-| --- | --- | --- |
-| `01_happy_path.json` | CRM write for a Sales user | AWAITING_APPROVAL → APPROVED → COMPLETED |
-| `02_missing_info.json` | Vague request | NEEDS_INFO, no plan |
-| `03_blocked_admin.json` | Admin on prod_db | BLOCKED (POL-GEN-00 §1) |
-| `04_prompt_injection.json` | Instructions to the system in the text | BLOCKED (§7) |
-| `05_rejected_by_manager.json` | Manager rejects | REJECTED, execute refused |
-| `06_tool_failure.json` | Directory timeout | FAILED_SAFE, re-run → COMPLETED |
-| `07_invalid_input.json` | Missing `requester_id` | Input rejected, no record created |
+All sample requests live in one folder, grouped by expected outcome:
+`allow/` (12), `needs_info/` (7), `blocked/` (12), `invalid/` (3).
+Each file holds a description, the request and the expected result.
+
+| Goal | Command |
+| --- | --- |
+| List all scenarios | `python -m app scenario` |
+| Run one and compare to the expected result | `python -m app scenario blocked/04_department_not_allowed` |
+| Submit one into the step-by-step flow | `python -m app submit allow/00_happy_path` |
+| Test all scenarios automatically | `python -m pytest tests/test_scenarios.py -v` |
+| Test one scenario automatically | `python -m pytest tests/test_scenarios.py -v -k hebrew` |
+
+A short name works when it is unique, e.g. `python -m app scenario 00_happy_path`.
+To add a case, add a JSON file to the right folder; no code change is needed.
 
 ## 5. Request statuses
 

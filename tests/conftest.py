@@ -22,7 +22,9 @@ LLM_SETTINGS = ("GEMINI_API_KEY", "LLM_PROVIDER", "LLM_MODEL")
 
 
 def load_request(name: str) -> dict:
-    return json.loads((DATA / "requests" / name).read_text(encoding="utf-8"))
+    """The request part of a scenario in data/scenarios/, e.g. "allow/00_happy_path"."""
+    from app.scenarios import request
+    return request(name)
 
 
 def directory_grants(eng, user_id):
@@ -76,6 +78,12 @@ class SessionCachedGemini:
         self.model = client.model
         self.calls = 0
         self._answers: dict[tuple[str, str], str] = {}
+
+    def answered(self, request_text: str) -> bool:
+        """True if Gemini really answered the prompt for this request text during this run."""
+        from app.llm import build_user_prompt
+        prompt = build_user_prompt(request_text)
+        return any(user == prompt for _, user in self._answers)
 
     RATE_LIMIT_WAITS = (20, 40, 60)   # seconds to wait after HTTP 429 before trying again
 

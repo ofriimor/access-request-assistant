@@ -1,0 +1,12 @@
+{
+  "description": "requester_id missing and text too short",
+  "request": {
+    "external_ref": "TCK-1007",
+    "target_user_id": "u1002",
+    "request_text": "short"
+  },
+  "expect": {
+    "status": "INPUT_REJECTED",
+    "error_contains": "requester_id"
+  }
+}

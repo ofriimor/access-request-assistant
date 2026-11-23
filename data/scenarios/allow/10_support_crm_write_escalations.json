@@ -1,0 +1,16 @@
+{
+  "description": "Support asks for CRM write (used in the demo for a manager rejection)",
+  "request": {
+    "external_ref": "TCK-1005",
+    "requester_id": "u1007",
+    "target_user_id": "u1007",
+    "request_text": "I need write access to the CRM for 30 days because I handle customer escalations and need to update case notes on accounts."
+  },
+  "expect": {
+    "status": "AWAITING_APPROVAL",
+    "system": "crm",
+    "access_level": "write",
+    "duration_days": 30,
+    "approver": "u1012"
+  }
+}

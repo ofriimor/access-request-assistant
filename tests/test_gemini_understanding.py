@@ -14,7 +14,7 @@ def request(requester: str, text: str, target: str | None = None) -> dict:
 
 
 def test_extracts_structured_fields(engine):
-    state = engine.submit(load_request("01_happy_path.json"))
+    state = engine.submit(load_request("allow/00_happy_path"))
     und = state["understanding"]
     assert state["llm_provider"] == "gemini"
     assert und["intent"] == "grant_access"
@@ -58,7 +58,7 @@ def test_unavailable_model_fails_safe(tmp_path, monkeypatch, gemini):
     monkeypatch.setenv("LLM_MODEL", "gemini-model-that-does-not-exist")
     from app.llm import GeminiLLM
     eng = Engine(runtime_dir=tmp_path, llm=GeminiLLM())
-    state = eng.submit(load_request("01_happy_path.json"))
+    state = eng.submit(load_request("allow/00_happy_path"))
     assert state["status"] == "FAILED_SAFE"
     assert "404" in state["error"]
     assert not any(e["event"] == "tool_call" and e["data"].get("tool") == "grant_access"

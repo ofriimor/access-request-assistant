@@ -44,6 +44,7 @@ flowchart TD
 | `app/state.py` | SQLite-backed state machine and action deduplication |
 | `app/audit.py` | JSONL event trail |
 | `app/report.py` | HTML As-Built from runtime evidence |
+| `app/scenarios.py` | Loads sample requests and expected outcomes from `data/scenarios/` by name |
 | `demo.py` | End-to-end scripted demonstration |
 
 ## Design vs. implementation
