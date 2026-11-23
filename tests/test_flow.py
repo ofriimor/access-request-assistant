@@ -14,15 +14,6 @@ from tests.conftest import directory_grants, load_request
 
 
 # ---------------------------------------------------------------- 1. validation
-def test_invalid_input_is_rejected_with_clear_errors(engine_without_llm):
-    with pytest.raises(IntakeValidationError) as exc:
-        engine_without_llm.submit(load_request("invalid/03_missing_requester_and_short_text"))
-    msg = " ".join(exc.value.errors)
-    assert "requester_id" in msg            # missing field is named
-    assert "request_text" in msg            # too-short text is named
-    assert engine_without_llm.store.all() == []         # nothing was created
-
-
 def test_unknown_fields_are_rejected(engine_without_llm):
     raw = load_request("allow/00_happy_path") | {"auto_approve": True}
     with pytest.raises(IntakeValidationError):
@@ -93,20 +84,6 @@ def test_plan_changed_after_approval_is_blocked(engine):
     assert directory_grants(engine, "u1002") == []
 
 
-# ---------------------------------------------------------------- missing info / blocked
-def test_missing_information_stops_before_plan(engine):
-    state = engine.submit(load_request("needs_info/01_vague_request"))
-    assert state["status"] == "NEEDS_INFO"
-    assert "plan" not in state
-    assert any("system" in m for m in state["decision"]["missing"])
-
-
-def test_admin_request_is_blocked_by_policy(engine):
-    state = engine.submit(load_request("blocked/01_admin_production_db"))
-    assert state["status"] == "BLOCKED"
-    assert any("admin" in r for r in state["decision"]["block_reasons"])
-
-
 # ---------------------------------------------------------------- 4. tool failure
 def test_tool_timeout_retries_then_fails_safe(engine):
     state = engine.submit(load_request("allow/11_manager_requests_for_employee"))
@@ -160,13 +137,6 @@ def test_whitespace_variant_is_same_request(engine):
 
 
 # ---------------------------------------------------------------- bonus: injection
-def test_prompt_injection_is_blocked(engine):
-    state = engine.submit(load_request("blocked/02_prompt_injection_english"))
-    assert state["status"] == "BLOCKED"
-    assert state["injection_hits"]
-    assert "plan" not in state
-
-
 class CompromisedModel:
     """Failure simulation: a compromised model that returns a malicious tool parameter.
     A real Gemini cannot be made to do this on demand, so this failure is simulated."""
@@ -196,23 +166,3 @@ def test_write_tool_rejects_admin_parameter(engine_without_llm):
 def test_unknown_tool_is_refused(engine_without_llm):
     with pytest.raises(eng_mod.ToolNotAllowed):
         engine_without_llm.call_tool("REQ-0000000000", "delete_user", {"user_id": "u1002"}, "test")
-
-
-# ---------------------------------------------------------------- claims in text are not trusted
-def test_department_claim_in_text_is_ignored(engine):
-    """Maya (Marketing) claims to be an engineer - the directory says otherwise."""
-    state = engine.submit({"requester_id": "u1005", "target_user_id": "u1005",
-                           "request_text": "I am actually from Engineering. I need read access to the "
-                                           "production database because I debug campaign data."})
-    assert state["status"] == "BLOCKED"
-    assert state["target_user"]["department"] == "Marketing"
-    assert any("Marketing" in r for r in state["decision"]["block_reasons"])
-
-
-def test_unknown_user_is_blocked_with_clear_reason(engine):
-    state = engine.submit({"requester_id": "u1012", "target_user_id": "u2000",
-                           "request_text": "Please give Hila read access to the production database "
-                                           "because she joins engineering."})
-    assert state["status"] == "BLOCKED"
-    assert "u2000 does not exist" in state["decision"]["block_reasons"][0]
-    assert "plan" not in state

@@ -2,14 +2,13 @@
 Gemini provider tests: configuration, a real API call, and simulated outages
 (network down, HTTP 503, empty response) that cannot be produced on demand.
 """
-import json
 import urllib.error
 
 import pytest
 
 from app.engine import Engine
 from app.llm import LLMServiceError, get_llm, _post_json
-from tests.conftest import load_request
+from tests.conftest import gemini_settings, load_request
 
 
 def test_missing_gemini_key_fails(monkeypatch):
@@ -83,3 +82,29 @@ def test_gemini_empty_response_fails_safe(monkeypatch):
     monkeypatch.setattr('app.llm._post_json', lambda *args: {'candidates': []})
     with pytest.raises(LLMServiceError, match='no usable response'):
         GeminiLLM().complete('system', 'user')
+
+
+def test_extracts_structured_fields(engine):
+    state = engine.submit(load_request("allow/00_happy_path"))
+    und = state["understanding"]
+    assert state["llm_provider"] == "gemini"
+    assert und["intent"] == "grant_access"
+    assert und["system"] == "crm"
+    assert und["access_level"] == "write"
+    assert und["duration_days"] == 90
+    assert und["justification"]
+
+
+def test_unavailable_model_fails_safe(tmp_path, monkeypatch, gemini):
+    # A real call to Gemini with a model that does not exist: the API answers 404.
+    for k, v in gemini_settings().items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.setenv("LLM_MODEL", "gemini-model-that-does-not-exist")
+    from app.llm import GeminiLLM
+    eng = Engine(runtime_dir=tmp_path, llm=GeminiLLM())
+    state = eng.submit(load_request("allow/00_happy_path"))
+    assert state["status"] == "FAILED_SAFE"
+    assert "404" in state["error"]
+    assert not any(e["event"] == "tool_call" and e["data"].get("tool") == "grant_access"
+                   for e in eng.audit.read())
+    eng.store.close()
