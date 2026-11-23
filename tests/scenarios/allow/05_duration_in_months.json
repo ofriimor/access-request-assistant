@@ -1,0 +1,14 @@
+{
+  "description": "Duration given in months instead of days",
+  "request": {
+    "requester_id": "u1009",
+    "target_user_id": "u1009",
+    "request_text": "I need to view CRM reports for 2 months because I prepare the quarterly sales review"
+  },
+  "expect": {
+    "status": "AWAITING_APPROVAL",
+    "system": "crm",
+    "access_level": "read",
+    "duration_days": 60
+  }
+}

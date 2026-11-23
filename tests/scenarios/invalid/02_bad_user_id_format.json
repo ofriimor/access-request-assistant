@@ -1,0 +1,12 @@
+{
+  "description": "User ID in the wrong format",
+  "request": {
+    "requester_id": "user-3",
+    "target_user_id": "user-3",
+    "request_text": "I need read access to the CRM because I prepare reports"
+  },
+  "expect": {
+    "status": "INPUT_REJECTED",
+    "error_contains": "requester_id"
+  }
+}

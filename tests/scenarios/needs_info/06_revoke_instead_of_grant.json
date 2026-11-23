@@ -1,0 +1,13 @@
+{
+  "description": "Asks to remove access - not supported by this assistant",
+  "request": {
+    "requester_id": "u1009",
+    "target_user_id": "u1009",
+    "request_text": "Please remove my write access to the CRM, I moved to a different team"
+  },
+  "expect": {
+    "status": "NEEDS_INFO",
+    "intent": "other",
+    "missing_contains": "intent"
+  }
+}

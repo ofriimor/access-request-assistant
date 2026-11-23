@@ -1,0 +1,14 @@
+{
+  "description": "Everything except the business reason",
+  "request": {
+    "requester_id": "u1003",
+    "target_user_id": "u1003",
+    "request_text": "Please give me write access to the CRM for 30 days."
+  },
+  "expect": {
+    "status": "NEEDS_INFO",
+    "system": "crm",
+    "access_level": "write",
+    "missing_contains": "justification"
+  }
+}

@@ -77,12 +77,27 @@ class SessionCachedGemini:
         self.calls = 0
         self._answers: dict[tuple[str, str], str] = {}
 
+    RATE_LIMIT_WAITS = (20, 40, 60)   # seconds to wait after HTTP 429 before trying again
+
     def complete(self, system: str, user: str) -> str:
         key = (system, user)
         if key not in self._answers:
             self.calls += 1
-            self._answers[key] = self.client.complete(system, user)
+            self._answers[key] = self._call_with_rate_limit_wait(system, user)
         return self._answers[key]
+
+    def _call_with_rate_limit_wait(self, system: str, user: str) -> str:
+        """Many real prompts in one run can exceed the API's requests-per-minute quota.
+        A 429 is a quota signal, not a system failure, so the tests wait and try again."""
+        import time
+        from app.llm import LLMServiceError
+        for wait in (*self.RATE_LIMIT_WAITS, None):
+            try:
+                return self.client.complete(system, user)
+            except LLMServiceError as e:
+                if "429" not in str(e) or wait is None:
+                    raise
+                time.sleep(wait)
 
 
 @pytest.fixture(scope="session")

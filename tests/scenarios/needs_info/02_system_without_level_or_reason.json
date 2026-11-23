@@ -1,0 +1,13 @@
+{
+  "description": "System is known, level and reason are missing",
+  "request": {
+    "requester_id": "u1009",
+    "target_user_id": "u1009",
+    "request_text": "Can you give me access to the CRM please?"
+  },
+  "expect": {
+    "status": "NEEDS_INFO",
+    "system": "crm",
+    "missing_contains": "justification"
+  }
+}

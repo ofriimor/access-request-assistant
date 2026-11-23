@@ -1,0 +1,14 @@
+{
+  "description": "Write on the production database (read is the maximum)",
+  "request": {
+    "requester_id": "u1004",
+    "target_user_id": "u1004",
+    "request_text": "I need write access to the production database for 7 days to fix customer records"
+  },
+  "expect": {
+    "status": "BLOCKED",
+    "system": "prod_db",
+    "access_level": "write",
+    "reason_contains": "exceeds the maximum"
+  }
+}

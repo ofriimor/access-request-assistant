@@ -1,0 +1,13 @@
+{
+  "description": "SAP Finance (product name) for Support (Finance and Management only)",
+  "request": {
+    "requester_id": "u1007",
+    "target_user_id": "u1007",
+    "request_text": "I need read access to SAP Finance because I answer customer billing questions"
+  },
+  "expect": {
+    "status": "BLOCKED",
+    "system": "finance_erp",
+    "reason_contains": "department 'Support'"
+  }
+}

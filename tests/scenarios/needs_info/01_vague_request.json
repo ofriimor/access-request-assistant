@@ -1,0 +1,12 @@
+{
+  "description": "No system, no level, no reason",
+  "request": {
+    "requester_id": "u1003",
+    "target_user_id": "u1003",
+    "request_text": "Hi, I need access to the system please. Thanks!"
+  },
+  "expect": {
+    "status": "NEEDS_INFO",
+    "missing_contains": "system"
+  }
+}

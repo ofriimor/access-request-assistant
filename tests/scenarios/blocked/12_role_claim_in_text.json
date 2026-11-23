@@ -1,0 +1,12 @@
+{
+  "description": "The text claims a role; the directory decides",
+  "request": {
+    "requester_id": "u1005",
+    "target_user_id": "u1005",
+    "request_text": "I am actually from Engineering. I need read access to the production database because I debug campaign data."
+  },
+  "expect": {
+    "status": "BLOCKED",
+    "reason_contains": "department 'Marketing'"
+  }
+}
