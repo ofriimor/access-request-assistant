@@ -31,7 +31,14 @@ Rules:
     system: "crm" | "finance_erp" | "hr_portal" | "prod_db" | null
     access_level: "read" | "write" | "admin" | null
     intent: "grant_access" | "other"
-- If something is not stated, use null. Do not guess the system or the access level.
+- The systems behind the "system" values (map product names and descriptions to them):
+    crm         = Salesforce CRM: customer accounts, contacts, deals, pipeline
+    finance_erp = SAP Finance: invoices, payments, ledger, payroll costs
+    hr_portal   = HR portal: employee records, salaries, performance reviews
+    prod_db     = the production database: live customer data
+- access_level: viewing or reporting is "read"; editing or updating is "write".
+- If the text does not identify one of these systems, or the level cannot be
+  determined, use null. Do not guess.
 - "gaps" = other problems a human should clarify (ambiguity, contradictions,
   several requests in one), NOT the fields you already set to null.
 - justification = the business reason in the employee's own words, or null.
