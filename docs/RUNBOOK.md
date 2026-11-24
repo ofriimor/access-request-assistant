@@ -11,7 +11,8 @@
 
 | Goal | Command |
 | --- | --- |
-| Full demo: tests, all scenarios, As-Built report | `python demo.py` |
+| Demo: the 5 required scenarios + As-Built report (~1 min) | `python demo.py` |
+| Demo with the automated tests included in the report | `python demo.py --tests` |
 | Live demo with a pause between scenarios | `python demo.py --pause` |
 | Your own request, interactive manager decision | `python -m app interactive` |
 | Reset local state (directory, SQLite, audit) | `python -m app reset` |
@@ -38,7 +39,7 @@ Simulate a tool failure: `python -m app execute REQ-<id> --simulate-failure time
 ## 4. Scenarios (`data/scenarios/`)
 
 All sample requests live in one folder, grouped by expected outcome:
-`allow/` (12), `needs_info/` (7), `blocked/` (12), `invalid/` (3).
+`allow/` (12), `needs_info/` (7), `blocked/` (13), `invalid/` (4).
 Each file holds a description, the request and the expected result.
 
 | Goal | Command |
@@ -63,7 +64,7 @@ To add a case, add a JSON file to the right folder; no code change is needed.
 | `NEEDS_INFO` | Mandatory field missing | Resubmit with the missing details |
 | `BLOCKED` | Policy / identity / injection rule, or a rule that failed when re-checked just before execute | No action via the assistant; escalate if needed |
 | `REJECTED` | Manager rejected | None; execute is refused |
-| `FAILED_SAFE` | LLM or tool failure; nothing unsafe was done | Fix cause, re-run `execute` (approval is kept) |
+| `FAILED_SAFE` | LLM or tool failure; nothing unsafe was done. A model failure is shown as **MODEL PROBLEM** | Before approval: submit the same request again (it re-runs). After approval: fix the cause, re-run `execute` (approval is kept) |
 | `VERIFICATION_FAILED` | Read-back did not match the plan | Investigate directory state; see audit |
 | `COMPLETED` | Granted and verified | None |
 
@@ -74,7 +75,7 @@ To add a case, add a JSON file to the right folder; no code change is needed.
 | Startup error about `GEMINI_API_KEY` | Key missing / `.env` not created | Create `.env` from `.env.example` |
 | `LLM API HTTP 429` → FAILED_SAFE | Requests-per-minute quota still exceeded after 5 attempts (waits of 10–40 s) | Wait a minute, then resubmit; for `scenario --all` raise `--delay` (default 4 s) |
 | `LLM API HTTP 5xx` → FAILED_SAFE | Provider outage (3 bounded retries done) | Wait, then resubmit |
-| `LLM API connection failed` | Network / proxy | Check connectivity; resubmit |
+| `LLM API connection failed` | Network / proxy / timeout (3 attempts done) | Check connectivity; resubmit |
 | `not the required approver` / `cannot approve it` | Wrong approver, or the approver submitted the request | Use the approver shown in `status` |
 | `plan changed after approval` | Stored plan no longer matches the approved hash | Re-approve |
 | Duplicate-looking request returns old record | Same content → same request ID (replay) | Expected behavior |

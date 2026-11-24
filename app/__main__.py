@@ -57,7 +57,12 @@ def show(state: dict) -> None:
         print(f"  Result  : {r['grant_id']} {r['system']}/{r['access_level']} expires {r['expires_at']}")
     if state.get("verification"):
         print(f"  Verify  : {'OK' if state['verification']['ok'] else 'FAILED'} {state['verification']['checks']}")
-    if state.get("error"):
+    if state.get("model_problem"):
+        print("\n  ┌─ ⚠ MODEL PROBLEM ──────────────────────────────────────────")
+        print(f"  │ {state['model_problem']}")
+        print(f"  │ Details: {state.get('error')}")
+        print("  └────────────────────────────────────────────────────────────")
+    elif state.get("error"):
         print(f"  Error   : {state['error']}")
     print()
 
@@ -143,8 +148,14 @@ def run_scenario(eng: Engine, ref: str, *, reject: bool = False, failure: str | 
             final = eng.status(rid)["status"]
 
     ok = decision == expected
+    model_down = decision == "FAILED_SAFE" and bool(eng.status(state["request_id"]).get("model_problem")) \
+        if decision not in ("INPUT_REJECTED",) else False
     out("  ─────────────────────────────────────────────────────────────")
-    out(f"  System decision : {decision:<18} expected {expected:<18} {'✓' if ok else '✗ DIFFERENT'}")
+    if model_down:
+        decision = final = "MODEL_UNAVAILABLE"
+        out("  System decision : not checked - the model (Gemini) is not available, see above")
+    else:
+        out(f"  System decision : {decision:<18} expected {expected:<18} {'✓' if ok else '✗ DIFFERENT'}")
     out(f"  Final status    : {final}" + ("   (after the manager's decision)" if final != decision else ""))
     out("")
     return {"name": scenarios.name_of(path), "expected": expected, "decision": decision,
@@ -173,9 +184,14 @@ def run_all_scenarios(eng: Engine, pause: bool = False, save_evidence: bool = Fa
 
     print(f"\n{'═' * 72}\n  SUMMARY\n{'═' * 72}")
     for r in results:
-        print(f"  {'✓' if r['ok'] else '✗'}  {r['name']:<48} decision {r['decision']:<18} final {r['final']}")
+        mark = "⚠" if r["decision"] == "MODEL_UNAVAILABLE" else ("✓" if r["ok"] else "✗")
+        print(f"  {mark}  {r['name']:<48} decision {r['decision']:<18} final {r['final']}")
     passed = sum(r["ok"] for r in results)
+    down = sum(r["decision"] == "MODEL_UNAVAILABLE" for r in results)
     print(f"\n  {passed}/{len(results)} scenarios reached the expected decision")
+    if down:
+        print(f"  ⚠ {down} scenario(s) could not be checked: the model (Gemini) was not available. "
+              "Run them again later.")
     report = generate(eng)
     print(f"  As-Built: {report}\n  Audit   : {eng.audit.path}")
     if save_evidence:

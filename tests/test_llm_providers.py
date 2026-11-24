@@ -37,6 +37,7 @@ def test_provider_network_error_is_safe(monkeypatch):
     def fail(*args, **kwargs):
         raise urllib.error.URLError('connection refused')
     monkeypatch.setattr('app.llm.urllib.request.urlopen', fail)
+    monkeypatch.setattr('app.llm.time.sleep', lambda s: None)
     with pytest.raises(LLMServiceError, match='connection failed'):
         _post_json('https://example.invalid', {}, {})
 
@@ -53,6 +54,7 @@ def test_engine_stops_before_action_when_llm_service_fails(engine_without_llm):
     assert state['status'] == 'FAILED_SAFE'
     assert 'plan' not in state
     assert state['error'] == 'LLM API HTTP 503'
+    assert 'not available' in state['model_problem']          # the user is told plainly
     assert eng.tools.directory_path.exists()
 
 
@@ -127,3 +129,40 @@ def test_rate_limit_is_retried_patiently(monkeypatch):
     assert _post_json("https://example.invalid", {}, {}) == {"ok": True}
     assert len(calls) == 3 and waits[0] >= 10 and waits[1] >= 20
 
+
+
+def test_timeout_is_retried_then_succeeds(monkeypatch):
+    """Failure simulation: the first call to Gemini times out, the second answers."""
+    import io
+    calls = []
+
+    def fake_urlopen(request, timeout):
+        calls.append(1)
+        if len(calls) == 1:
+            raise TimeoutError("read timed out")
+        return io.BytesIO(b'{"ok": true}')
+
+    monkeypatch.setattr("app.llm.urllib.request.urlopen", fake_urlopen)
+    monkeypatch.setattr("app.llm.time.sleep", lambda s: None)
+    assert _post_json("https://example.invalid", {}, {}) == {"ok": True}
+    assert len(calls) == 2
+
+
+def test_request_stopped_by_outage_can_be_resubmitted(engine, gemini):
+    """Gemini was down, so the request stopped. When Gemini is back, submitting the same
+    request runs it again (its ID comes from its content, so it used to stay stuck)."""
+    class GeminiOutage:
+        name = "gemini-outage-simulation"
+        def complete(self, system, user):
+            raise LLMServiceError("LLM API HTTP 503")
+
+    raw = load_request("allow/00_happy_path")
+    engine.llm = GeminiOutage()
+    first = engine.submit(raw)
+    assert first["status"] == "FAILED_SAFE" and first["model_problem"]
+
+    engine.llm = gemini                          # Gemini is back
+    second = engine.submit(raw)
+    assert second["request_id"] == first["request_id"]
+    assert second["status"] == "AWAITING_APPROVAL" and not second.get("replayed")
+    assert len(engine.store.all()) == 1
