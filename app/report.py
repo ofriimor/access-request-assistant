@@ -50,7 +50,7 @@ STATUS_TONE = {
 BAD_EVENTS = {"tool_error", "failed_safe", "execute_blocked", "validation_failed", "tool_schema_rejected",
               "tool_blocked", "approval_refused", "verification_failed", "unknown_user", "llm_output_invalid"}
 GOOD_EVENTS = {"approved", "verified", "plan_created"}
-NOTE_EVENTS = {"rejected", "replay_detected", "replay_no_op", "idempotent_hit"}
+NOTE_EVENTS = {"rejected", "replay_detected", "replay_no_op", "idempotent_hit", "retry_after_failed_safe"}
 
 
 def read_junit(path: Path) -> dict | None:
@@ -61,10 +61,13 @@ def read_junit(path: Path) -> dict | None:
     cases = []
     for tc in suite.iter("testcase"):
         failed = tc.find("failure") is not None or tc.find("error") is not None
+        skipped = tc.find("skipped") is not None          # a skip is not a pass
         name = tc.get("name")
         readable = name.removeprefix("test_").replace("_", " ").capitalize()
-        cases.append({"name": name, "readable": readable, "time": tc.get("time"), "ok": not failed})
-    return {"total": len(cases), "passed": sum(c["ok"] for c in cases), "cases": cases}
+        cases.append({"name": name, "readable": readable, "time": tc.get("time"),
+                      "ok": not failed and not skipped, "skipped": skipped})
+    return {"total": len(cases), "passed": sum(c["ok"] for c in cases),
+            "skipped": sum(c["skipped"] for c in cases), "cases": cases}
 
 
 def _data_uri(path: Path) -> str:

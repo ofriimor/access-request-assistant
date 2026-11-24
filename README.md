@@ -7,7 +7,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="Gemini" src="https://img.shields.io/badge/LLM-Google%20Gemini-4285F4?logo=google&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-73%20passing-2EA44F">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-97-2EA44F">
   <img alt="Scenarios" src="https://img.shields.io/badge/scenarios-36-6A4DF5">
 </p>
 
@@ -62,21 +62,30 @@ LLM_MODEL=gemini-3.5-flash-lite
 Run the demo:
 
 ```bash
-python demo.py --pause            # all required scenarios, Enter between them
+python demo.py --pause            # the 5 required scenarios, Enter between them (~1 minute)
+python demo.py --pause --replay   # same, offline: recorded Gemini answers, no key or network needed
 ```
+
+> **No key, or Gemini is down during a live demo?** `--replay` plays back answers that Gemini really gave
+> (`data/llm_recordings.json`). It is chosen explicitly and never used as a silent fallback.
+> Refresh the recordings with a key: `python -m app record`.
 
 ### Commands
 
 | Goal | Command |
 |---|---|
 | Run the demo + As-Built report | `python demo.py` |
+| Same, including the automated tests in the report | `python demo.py --tests` |
+| Any command offline, on recorded Gemini answers | `python -m app --replay <command>` · `python demo.py --replay` |
+| Record / refresh Gemini answers for replay | `python -m app record` |
 | Write your own request and approve it as the manager | `python -m app interactive` |
 | List the scenarios | `python -m app scenario` |
 | Run one scenario, end to end | `python -m app scenario allow/02_marketing_crm_read_hebrew` |
 | Run every scenario + As-Built report | `python -m app scenario --all` |
 | Run the automated tests | `python -m pytest -v` |
 
-`--save-evidence` (on `demo.py` or `scenario --all`) copies the report and audit trail to `evidence/`.
+`--save-evidence` (on `demo.py` or `scenario --all`) copies the report and audit trail to `evidence/`
+(with `demo.py --tests`, the test results too).
 
 <details>
 <summary><b>Step-by-step commands</b></summary>
@@ -196,7 +205,7 @@ The general policy (`POL-GEN-00`) applies to every request: no admin through the
 | Duplicate grants | Content-based request ID · idempotency key · "already has this access" re-checked before execution |
 | Prompt injection | Text treated as data · fixed list of allowed values · decision made in code |
 | Claims in the text ("I am the manager") | Identity, department and role always come from the directory |
-| Gemini or tool failure | Limited retries (longer waits on rate limits), then a safe stop — nothing is executed |
+| Gemini or tool failure | Limited retries (HTTP 429/5xx and timeouts; longer waits on rate limits), then a safe stop — nothing is executed. Submitting the same request again re-runs it |
 
 ---
 
@@ -225,17 +234,26 @@ The general policy (`POL-GEN-00`) applies to every request: no admin through the
 ### Tests
 
 ```bash
-python -m pytest -v               # 73 tests, run against Gemini (key required)
+python -m pytest -v               # 97 tests
 ```
+
+| Mode | When | What the model answers come from |
+|---|---|---|
+| **live** | `GEMINI_API_KEY` is set | the Gemini API |
+| **replay** | no key, or `TEST_LLM=replay` | answers Gemini really gave, recorded in `data/llm_recordings.json` |
+
+The pytest header shows the mode. In replay mode, a text that has not been recorded is skipped (not passed),
+and the 2 tests about the Gemini API itself need live mode.
 
 | File | Checks |
 |---|---|
 | `test_scenarios.py` | every scenario reaches its expected result; allowed ones are approved, executed and verified |
+| `test_guard.py` | every decision rule on its own, with fixed inputs: no model, same result on every run |
 | `test_flow.py` | approval rules · separation of duties · re-check before execute · tool failures and recovery · idempotency · malicious tool parameters |
-| `test_llm_providers.py` | Gemini configuration · API errors · rate limits · safe stop when the service is down |
+| `test_llm_providers.py` | Gemini configuration · API errors · rate limits · timeouts · replay mode · re-submitting after an outage |
 | `test_config.py` | settings loaded from `.env` |
 
-The model is never faked. Only failures are simulated — tool timeouts, a compromised model, a network outage — because they cannot be produced on demand.
+The model is never faked: answers come from Gemini, live or recorded. Only failures are simulated — tool timeouts, a compromised model, a network outage — because they cannot be produced on demand.
 
 ---
 
@@ -265,13 +283,14 @@ flowchart TB
 |---|---|
 | `app/engine.py` | the 7 steps · tool gateway (allow-list, schema, retries, audit) · approval gate · re-check · verification |
 | `app/guard.py` | the decision rules |
-| `app/llm.py` | Gemini: prompt, JSON output, validation, retries |
+| `app/llm.py` | Gemini: prompt, JSON output, validation, retries · replay of recorded answers |
+| `app/recordings.py` | records Gemini answers for replay (`python -m app record`) |
 | `app/tools.py` | `search_policies` · `read_policy` · `lookup_user` (read) · `grant_access` (write) |
 | `app/schemas.py` | data contracts (Pydantic) |
 | `app/state.py` | statuses, allowed transitions, SQLite storage |
 | `app/audit.py` · `app/report.py` | audit trail · As-Built report |
 | `app/scenarios.py` · `app/__main__.py` | scenario loader · command line |
-| `data/` | directory · policies · scenarios |
+| `data/` | directory · policies · scenarios · recorded Gemini answers |
 | `tests/` · `docs/RUNBOOK.md` · `evidence/` | tests · operations guide · run results |
 
 <details>
@@ -287,7 +306,7 @@ flowchart TB
 | 6 | Human in the loop | separate `submit` / `execute`; execute needs a valid approval |
 | 7 | Input/output schemas | every tool input and output validated |
 | 8 | Idempotency | content-based ID · idempotency key · request ID check in the write tool |
-| 9 | Error handling | bounded retries with backoff, then a safe stop |
+| 9 | Error handling | bounded retries with backoff (tools, HTTP 429/5xx, timeouts), then a safe stop; resubmitting re-runs |
 | 10 | Post-action verification | directory re-read; 5 checks |
 | 11 | Audit trail | every step, tool call, approval and error |
 | 12 | HTML As-Built | generated from the run's data |
@@ -304,6 +323,8 @@ All five required demo scenarios — happy path, missing info, rejected/blocked,
 | Approve: human approval | Bound to the plan hash; the manager's manager approves when the manager submitted | Approve exactly what runs; no self-approval |
 | Execute: a tool that changes state | Rules re-checked on fresh data first | Changes after the approval cannot slip through |
 | Retrieve: local knowledge | TF-IDF over 5 policies | Simple, transparent, no extra services |
+| LLM: local or API | Gemini API; an explicit `replay` mode plays back recorded Gemini answers | Demo and tests also work without network or quota, without inventing answers |
+| Intake: request ID | Content-based ID; a request stopped by an outage before approval re-runs when resubmitted | A repeat is recognized, yet a temporary outage does not leave a request stuck |
 </details>
 
 ---
@@ -344,6 +365,8 @@ Download an `.html` file and open it in a browser to view the report.
 - User IDs are typed, not authenticated (production: SSO).
 - Expired access is not removed automatically.
 - If Gemini classifies a request as the wrong system, the rules cannot detect it; the manager sees the exact plan before approving.
+- Injection detection is pattern-based (English and Hebrew) and not complete; the main protection is that the model never decides.
+- Replay mode covers only recorded texts; a new text in replay mode stops safely, like an unreachable model.
 
 ## Tools used
 
