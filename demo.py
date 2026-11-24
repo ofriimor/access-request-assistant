@@ -3,7 +3,6 @@ One command that runs everything for the presentation:
 
     python demo.py            # the required scenarios, then the As-Built report (~1 minute)
     python demo.py --pause    # wait for Enter between scenarios (live demo)
-    python demo.py --replay   # same, with recorded Gemini answers (no network / quota needed)
     python demo.py --tests    # also run the automated tests first and include them in the report
 
 Steps: reset -> [tests] -> the 5 required scenarios -> reports/as_built.html
@@ -47,8 +46,10 @@ def waiting(state: dict) -> bool:
     """False if the request did not reach the approval step (e.g. the LLM was unreachable)."""
     if state["status"] == "AWAITING_APPROVAL":
         return True
-    print(f"  (stopped safely at {state['status']} - this part of the demo is skipped; "
-          "re-run, or use --replay)")
+    if state.get("model_problem"):
+        print("  ⚠ This part of the demo is skipped because the model is not available.")
+    else:
+        print(f"  (stopped at {state['status']} - this part of the demo is skipped)")
     return False
 
 
@@ -61,16 +62,11 @@ def main() -> None:
     ap.add_argument("--tests", action="store_true",
                     help="run the automated tests first (several minutes against the live API)")
     ap.add_argument("--skip-tests", action="store_true", help=argparse.SUPPRESS)  # old flag, now the default
-    ap.add_argument("--replay", action="store_true",
-                    help="use recorded Gemini answers instead of the API (offline backup for a live demo)")
+
     ap.add_argument("--save-evidence", action="store_true",
                     help="Copy the run's report, audit log and test results into evidence/")
     args = ap.parse_args()
     PAUSE = args.pause
-    if args.replay:
-        import os
-        os.environ["LLM_PROVIDER"] = "replay"
-        os.environ.setdefault("TEST_LLM", "replay")
 
     # Validate provider BEFORE reset so a missing API key cannot destroy evidence.
     from app.llm import get_llm
@@ -78,7 +74,7 @@ def main() -> None:
         get_llm()
     except ValueError as err:
         print(f"\n  ✗ LLM not configured: {err}\n"
-              "    Put GEMINI_API_KEY in .env, or run offline with: python demo.py --replay\n")
+              "    Put GEMINI_API_KEY in .env.\n")
         sys.exit(5)
     reset_runtime()
     if args.tests and not args.skip_tests:
@@ -96,9 +92,8 @@ def main() -> None:
     title("1. HAPPY PATH - Noa asks for CRM write access")
     step("submit  (Intake → Understand → Retrieve → Plan)")
     s = eng.submit(load("allow/00_happy_path")); show(s)
-    if s["status"] == "FAILED_SAFE":
-        print("  LLM unavailable; demo stopped safely before approval. "
-              "Try again, or run offline: python demo.py --replay")
+    if s.get("model_problem"):
+        print("  ⚠ The demo stops here: the model (Gemini) is not available. Try again in a few minutes.")
         return
     rid = s["request_id"]
     step("execute BEFORE approval → must be blocked")
@@ -113,7 +108,7 @@ def main() -> None:
 
     # ------------------------------------------------------------------ 2
     title("2. MISSING INFORMATION")
-    show(eng.submit(load("needs_info/02_system_without_level_or_reason")))
+    show(eng.submit(load("needs_info/01_vague_request")))
 
     title("2b. INVALID INPUT (schema)")
     try:

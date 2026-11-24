@@ -54,6 +54,7 @@ def test_engine_stops_before_action_when_llm_service_fails(engine_without_llm):
     assert state['status'] == 'FAILED_SAFE'
     assert 'plan' not in state
     assert state['error'] == 'LLM API HTTP 503'
+    assert 'not available' in state['model_problem']          # the user is told plainly
     assert eng.tools.directory_path.exists()
 
 
@@ -64,10 +65,10 @@ def test_explicit_gemini_requires_key(monkeypatch):
         get_llm()
 
 
-def test_gemini_returns_valid_understanding(live_gemini):
+def test_gemini_returns_valid_understanding(gemini):
     """A call to Gemini returns JSON that passes the Understanding schema."""
     from app.llm import SYSTEM_PROMPT, build_user_prompt, parse_understanding
-    raw = live_gemini.client.complete(SYSTEM_PROMPT, build_user_prompt(
+    raw = gemini.client.complete(SYSTEM_PROMPT, build_user_prompt(
         "I need read access to the HR portal for 14 days because I review onboarding forms"))
     und = parse_understanding(raw)
     assert und.intent == "grant_access"
@@ -85,10 +86,10 @@ def test_gemini_empty_response_fails_safe(monkeypatch):
         GeminiLLM().complete('system', 'user')
 
 
-def test_extracts_structured_fields(engine, gemini):
+def test_extracts_structured_fields(engine):
     state = engine.submit(load_request("allow/00_happy_path"))
     und = state["understanding"]
-    assert state["llm_provider"] == gemini.name
+    assert state["llm_provider"] == "gemini"
     assert und["intent"] == "grant_access"
     assert und["system"] == "crm"
     assert und["access_level"] == "write"
@@ -96,7 +97,7 @@ def test_extracts_structured_fields(engine, gemini):
     assert und["justification"]
 
 
-def test_unavailable_model_fails_safe(tmp_path, monkeypatch, live_gemini):
+def test_unavailable_model_fails_safe(tmp_path, monkeypatch, gemini):
     # A call to Gemini with a model that does not exist: the API answers 404.
     for k, v in gemini_settings().items():
         monkeypatch.setenv(k, v)
@@ -131,7 +132,7 @@ def test_rate_limit_is_retried_patiently(monkeypatch):
 
 
 def test_timeout_is_retried_then_succeeds(monkeypatch):
-    """Failure simulation: the first call times out, the second answers."""
+    """Failure simulation: the first call to Gemini times out, the second answers."""
     import io
     calls = []
 
@@ -147,44 +148,21 @@ def test_timeout_is_retried_then_succeeds(monkeypatch):
     assert len(calls) == 2
 
 
-def test_replay_is_chosen_only_explicitly(monkeypatch):
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    monkeypatch.setenv("LLM_PROVIDER", "replay")
-    assert get_llm().name == "gemini-replay"
-    monkeypatch.setenv("LLM_PROVIDER", "gemini")
-    with pytest.raises(ValueError, match="GEMINI_API_KEY"):   # no silent fallback to replay
-        get_llm()
-
-
-def test_replay_of_unrecorded_text_fails_safe(engine_without_llm):
-    """Replay never invents an answer: an unknown text stops like an unreachable model."""
-    from app.llm import ReplayLLM
-    eng = engine_without_llm
-    eng.llm = ReplayLLM()
-    state = eng.submit({"requester_id": "u1002", "target_user_id": "u1002",
-                        "request_text": "A text that was never sent to Gemini, so it has no answer"})
-    assert state["status"] == "FAILED_SAFE" and "plan" not in state
-
-
-def test_request_stopped_by_outage_can_be_resubmitted(engine_without_llm):
-    """Gemini was down: the same request, submitted again later, runs again
-    instead of returning the old FAILED_SAFE record (the request ID is content-based)."""
-    from app.llm import ReplayLLM
-
+def test_request_stopped_by_outage_can_be_resubmitted(engine, gemini):
+    """Gemini was down, so the request stopped. When Gemini is back, submitting the same
+    request runs it again (its ID comes from its content, so it used to stay stuck)."""
     class GeminiOutage:
         name = "gemini-outage-simulation"
         def complete(self, system, user):
             raise LLMServiceError("LLM API HTTP 503")
 
-    eng = engine_without_llm
     raw = load_request("allow/00_happy_path")
-    eng.llm = GeminiOutage()
-    first = eng.submit(raw)
-    assert first["status"] == "FAILED_SAFE"
+    engine.llm = GeminiOutage()
+    first = engine.submit(raw)
+    assert first["status"] == "FAILED_SAFE" and first["model_problem"]
 
-    eng.llm = ReplayLLM()                       # the service is back
-    second = eng.submit(raw)
+    engine.llm = gemini                          # Gemini is back
+    second = engine.submit(raw)
     assert second["request_id"] == first["request_id"]
     assert second["status"] == "AWAITING_APPROVAL" and not second.get("replayed")
-    assert len(eng.store.all()) == 1
-    assert any(e["event"] == "retry_after_failed_safe" for e in eng.audit.read(first["request_id"]))
+    assert len(engine.store.all()) == 1

@@ -55,7 +55,7 @@ def test_scenario(path, engine, gemini):
     state = engine.submit(case["request"])
 
     # The request really went through Gemini.
-    _check(state.get("llm_provider") == gemini.name and "understanding" in state,
+    _check(state.get("llm_provider") == "gemini" and "understanding" in state,
            case, "the request was understood by Gemini", state)
     assert gemini.answered(case["request"]["request_text"]), "this prompt was not answered by Gemini"
 

@@ -14,10 +14,6 @@ CLI:  python -m app <command>
   audit   [REQ-id]
   report                                 generate reports/as_built.html
   interactive                            type your own request, then approve/reject it yourself
-  record [--from-audit FILE ...]         save Gemini's answers for offline replay (data/llm_recordings.json)
-
-  --replay (before the command)          use recorded Gemini answers instead of the API,
-                                         e.g.  python -m app --replay scenario --all
 """
 from __future__ import annotations
 
@@ -61,7 +57,12 @@ def show(state: dict) -> None:
         print(f"  Result  : {r['grant_id']} {r['system']}/{r['access_level']} expires {r['expires_at']}")
     if state.get("verification"):
         print(f"  Verify  : {'OK' if state['verification']['ok'] else 'FAILED'} {state['verification']['checks']}")
-    if state.get("error"):
+    if state.get("model_problem"):
+        print("\n  ┌─ ⚠ MODEL PROBLEM ──────────────────────────────────────────")
+        print(f"  │ {state['model_problem']}")
+        print(f"  │ Details: {state.get('error')}")
+        print("  └────────────────────────────────────────────────────────────")
+    elif state.get("error"):
         print(f"  Error   : {state['error']}")
     print()
 
@@ -147,8 +148,14 @@ def run_scenario(eng: Engine, ref: str, *, reject: bool = False, failure: str | 
             final = eng.status(rid)["status"]
 
     ok = decision == expected
+    model_down = decision == "FAILED_SAFE" and bool(eng.status(state["request_id"]).get("model_problem")) \
+        if decision not in ("INPUT_REJECTED",) else False
     out("  ─────────────────────────────────────────────────────────────")
-    out(f"  System decision : {decision:<18} expected {expected:<18} {'✓' if ok else '✗ DIFFERENT'}")
+    if model_down:
+        decision = final = "MODEL_UNAVAILABLE"
+        out("  System decision : not checked - the model (Gemini) is not available, see above")
+    else:
+        out(f"  System decision : {decision:<18} expected {expected:<18} {'✓' if ok else '✗ DIFFERENT'}")
     out(f"  Final status    : {final}" + ("   (after the manager's decision)" if final != decision else ""))
     out("")
     return {"name": scenarios.name_of(path), "expected": expected, "decision": decision,
@@ -177,9 +184,14 @@ def run_all_scenarios(eng: Engine, pause: bool = False, save_evidence: bool = Fa
 
     print(f"\n{'═' * 72}\n  SUMMARY\n{'═' * 72}")
     for r in results:
-        print(f"  {'✓' if r['ok'] else '✗'}  {r['name']:<48} decision {r['decision']:<18} final {r['final']}")
+        mark = "⚠" if r["decision"] == "MODEL_UNAVAILABLE" else ("✓" if r["ok"] else "✗")
+        print(f"  {mark}  {r['name']:<48} decision {r['decision']:<18} final {r['final']}")
     passed = sum(r["ok"] for r in results)
+    down = sum(r["decision"] == "MODEL_UNAVAILABLE" for r in results)
     print(f"\n  {passed}/{len(results)} scenarios reached the expected decision")
+    if down:
+        print(f"  ⚠ {down} scenario(s) could not be checked: the model (Gemini) was not available. "
+              "Run them again later.")
     report = generate(eng)
     print(f"  As-Built: {report}\n  Audit   : {eng.audit.path}")
     if save_evidence:
@@ -223,45 +235,10 @@ def interactive(eng: Engine) -> None:
         show(eng.execute(rid))
 
 
-def record(audit_files: list[str] | None) -> int:
-    """Keep Gemini's answers so the demo and tests can also run offline (LLM_PROVIDER=replay)."""
-    from pathlib import Path
-    from . import recordings as rc
-    try:
-        _, existing = rc.load_recordings()
-    except ValueError:
-        existing = {}
-    if audit_files:
-        found = rc.from_audit([Path(f) for f in audit_files])
-    else:
-        from .llm import GeminiLLM
-        from .config import load_env
-        load_env()
-        try:
-            llm = GeminiLLM()
-        except KeyError:
-            print("\n  ✗ GEMINI_API_KEY is required to record answers.\n"); return 5
-        texts = rc.texts_to_record()
-        print(f"\n  Asking Gemini ({llm.model}) for {len(texts)} request texts...")
-        found = {}
-        for t in texts:
-            found |= rc.record_live(llm, [t])
-            time.sleep(4)                  # stay under the requests-per-minute quota
-    path = rc.save_recordings(existing | found)
-    missing = [t for t in rc.texts_to_record() if rc.normalize(t) not in (existing | found)]
-    print(f"\n  {len(found)} answers saved to {path}")
-    if missing:
-        print(f"  Still not recorded ({len(missing)}): " + "; ".join(m[:40] for m in missing))
-    print()
-    return 0
-
-
 def main(argv=None) -> int:
     from .config import load_env
     load_env()   # GEMINI_API_KEY etc. from .env (never committed)
     ap = argparse.ArgumentParser(prog="python -m app")
-    ap.add_argument("--replay", action="store_true",
-                    help="use recorded Gemini answers (data/llm_recordings.json) instead of the API")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("reset")
     s = sub.add_parser("submit"); s.add_argument("file", help="scenario name or path to a JSON file")
@@ -283,17 +260,7 @@ def main(argv=None) -> int:
     au = sub.add_parser("audit"); au.add_argument("rid", nargs="?")
     sub.add_parser("report")
     sub.add_parser("interactive")
-    rec = sub.add_parser("record", help="save Gemini answers for offline replay")
-    rec.add_argument("--from-audit", nargs="+", default=None, metavar="FILE",
-                     help="collect answers from earlier audit logs instead of calling Gemini")
     args = ap.parse_args(argv)
-    if args.replay:
-        import os
-        os.environ["LLM_PROVIDER"] = "replay"
-        if args.cmd == "scenario":
-            args.delay = 0                 # no API quota to respect
-    if args.cmd == "record":
-        return record(args.from_audit)
 
     if args.cmd == "reset":
         reset_runtime(); print("runtime reset."); return 0

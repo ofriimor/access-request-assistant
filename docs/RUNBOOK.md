@@ -5,22 +5,15 @@
 1. Python 3.10+: `python -m pip install -r requirements.txt`
 2. `copy .env.example .env` (Linux/macOS: `cp .env.example .env`) and set `GEMINI_API_KEY`.
    `.env` is git-ignored; never commit keys.
-3. Sanity check: `python -m pytest -v`. With a key the tests call the Gemini API (uses quota);
-   without one they replay recorded Gemini answers (`data/llm_recordings.json`). The pytest
-   header line says which mode ran. Force a mode with `TEST_LLM=live` or `TEST_LLM=replay`.
-4. Optional, before a live demo: `python -m app record` refreshes the recorded answers, so
-   `python demo.py --replay` works even if the network or the Gemini API is down.
+3. Sanity check: `python -m pytest -v` (runs against the Gemini API; needs the key and uses API quota).
 
 ## 2. Run
 
 | Goal | Command |
 | --- | --- |
 | Demo: the 5 required scenarios + As-Built report (~1 min) | `python demo.py` |
+| Demo with the automated tests included in the report | `python demo.py --tests` |
 | Live demo with a pause between scenarios | `python demo.py --pause` |
-| Same, offline (recorded Gemini answers) | `python demo.py --replay --pause` |
-| Demo including the automated tests in the report | `python demo.py --tests` |
-| Any CLI command offline | `python -m app --replay <command>` |
-| Record / refresh Gemini answers for replay | `python -m app record` |
 | Your own request, interactive manager decision | `python -m app interactive` |
 | Reset local state (directory, SQLite, audit) | `python -m app reset` |
 
@@ -71,7 +64,7 @@ To add a case, add a JSON file to the right folder; no code change is needed.
 | `NEEDS_INFO` | Mandatory field missing | Resubmit with the missing details |
 | `BLOCKED` | Policy / identity / injection rule, or a rule that failed when re-checked just before execute | No action via the assistant; escalate if needed |
 | `REJECTED` | Manager rejected | None; execute is refused |
-| `FAILED_SAFE` | LLM or tool failure; nothing unsafe was done | Before approval: submit the same request again (it re-runs). After approval: fix the cause, re-run `execute` (approval is kept) |
+| `FAILED_SAFE` | LLM or tool failure; nothing unsafe was done. A model failure is shown as **MODEL PROBLEM** | Before approval: submit the same request again (it re-runs). After approval: fix the cause, re-run `execute` (approval is kept) |
 | `VERIFICATION_FAILED` | Read-back did not match the plan | Investigate directory state; see audit |
 | `COMPLETED` | Granted and verified | None |
 
@@ -82,8 +75,7 @@ To add a case, add a JSON file to the right folder; no code change is needed.
 | Startup error about `GEMINI_API_KEY` | Key missing / `.env` not created | Create `.env` from `.env.example` |
 | `LLM API HTTP 429` → FAILED_SAFE | Requests-per-minute quota still exceeded after 5 attempts (waits of 10–40 s) | Wait a minute, then resubmit; for `scenario --all` raise `--delay` (default 4 s) |
 | `LLM API HTTP 5xx` → FAILED_SAFE | Provider outage (3 bounded retries done) | Wait, then resubmit |
-| `LLM API connection failed` | Network / proxy / timeout (3 bounded attempts done) | Check connectivity; resubmit |
-| `no recorded Gemini answer` | Replay mode, text was never recorded | Use a scenario, or run `python -m app record` with a key |
+| `LLM API connection failed` | Network / proxy / timeout (3 attempts done) | Check connectivity; resubmit |
 | `not the required approver` / `cannot approve it` | Wrong approver, or the approver submitted the request | Use the approver shown in `status` |
 | `plan changed after approval` | Stored plan no longer matches the approved hash | Re-approve |
 | Duplicate-looking request returns old record | Same content → same request ID (replay) | Expected behavior |

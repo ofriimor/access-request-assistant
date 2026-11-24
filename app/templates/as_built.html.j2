@@ -205,7 +205,7 @@
       <strong>{{ requests|length + intake_rejections|length }}</strong> בקשות,
       <strong>{{ completed }}</strong> הושלמו ואומתו, <strong>{{ stopped }}</strong> נעצרו לפני ביצוע,
       {% if tests %}<strong>{{ tests.passed }} מתוך {{ tests.total }}</strong> בדיקות אוטומטיות עברו,{% endif %}
-      <strong>{{ audit_count }}</strong> אירועים ב־Audit. ה־LLM בריצה: <strong class="en">{% if llm == "gemini" %}Google Gemini API{% elif llm == "gemini-replay" %}Replay של תשובות Gemini מוקלטות (ללא קריאה ל־API){% else %}{{ llm }}{% endif %}{% if llm_model and llm != "gemini-replay" %}, {{ llm_model }}{% endif %}</strong>.
+      <strong>{{ audit_count }}</strong> אירועים ב־Audit. ה־LLM בריצה: <strong class="en">{% if llm == "gemini" %}Google Gemini API{% else %}{{ llm }}{% endif %}{% if llm_model %}, {{ llm_model }}{% endif %}</strong>.
     </p>
   </div>
 </header>
@@ -411,7 +411,7 @@
           <tr><td>Approve: עצירה ואישור אנושי</td><td>האישור נשמר עם <code>plan_hash</code>, ורק המנהל הישיר מורשה. כשהמנהל הישיר הגיש את הבקשה, המנהל שלו מאשר. מאשר מושבת לא יכול לאשר.</td><td>מונע מצב שבו מאשרים דבר אחד ומבצעים דבר אחר, ומונע מאדם לאשר בקשה של עצמו.</td></tr>
 <tr><td>Execute: הפעלת Tool שמשנה מצב</td><td>ממש לפני הכתיבה, הכללים נבדקים שוב על נתונים עדכניים מה־Directory.</td><td>אם העובד הושבת או קיבל כבר את ההרשאה בבקשה אחרת אחרי האישור, הביצוע נחסם.</td></tr>
           <tr><td>Intake: יצירת Request ID</td><td>ה־ID נגזר מ־hash של תוכן הבקשה.</td><td>הגשה חוזרת מזוהה אוטומטית כ־Replay.</td></tr>
-          <tr><td>LLM: מקומי או שירות API</td><td>Google Gemini API. מצב <code>replay</code> (נבחר במפורש בלבד) מנגן תשובות ש־Gemini באמת החזיר, מתוך <code>data/llm_recordings.json</code>. אין מודל מזויף.</td><td>חסר מפתח או ש־Gemini לא זמין? המערכת נעצרת בבטחה לפני כל פעולה. Replay מאפשר להריץ את הדמו והבדיקות גם בלי רשת או מכסת API.</td></tr>
+          <tr><td>LLM: מקומי או שירות API</td><td>Google Gemini API בלבד, בלי ספק חלופי ובלי תשובות מזויפות. גם הבדיקות האוטומטיות רצות מול Gemini, ורק כשלים מודמים.</td><td>חסר מפתח או ש־Gemini לא זמין? המערכת נעצרת לפני כל פעולה ומודיעה למשתמש שיש בעיה במודל.</td></tr>
           <tr><td>Retrieve: ידע מקומי</td><td>TF-IDF במקום Embeddings.</td><td>חמישה מסמכים. שקוף, דטרמיניסטי ובלי תלויות.</td></tr>
           <tr><td>Verify &amp; Report</td><td>הדוח נוצר בפקודה נפרדת ומכסה את כל הריצות.</td><td>מסמך מסירה אחד לכל התרחישים.</td></tr>
           <tr><td>אין</td><td><code>FAILED_SAFE</code> מאפשר להריץ Execute שוב בלי אישור חדש.</td><td>התקלה הייתה בתשתית ולא בתוכנית, וה־Idempotency מונע כפילות.</td></tr>
@@ -441,7 +441,6 @@
         <li>זיהוי Prompt Injection מבוסס דפוסים ואינו מלא. ההגנה העיקרית היא שה־LLM לא מחליט, וגם <code>admin</code> נחסם ב־Guard ובסכמה.</li>
         <li>זהות המגיש והמאשר נמסרת כפרמטר, בלי אימות. בפרודקשן הזהות תגיע מ־SSO והאישור מ־Teams או ServiceNow.</li>
         <li>אין הסרה אוטומטית של הרשאות שפג תוקפן. התאריך נשמר, אבל לא מומש תהליך שמסיר אותן.</li>
-        <li>מצב Replay מכסה רק טקסטים שהוקלטו מראש (<code>python -m app record</code>). טקסט חדש במצב זה נעצר בבטחה, כמו מודל שאינו זמין.</li>
         <li>עיבוד סינכרוני למשתמש יחיד. SQLite מתאים לדמו; בפרודקשן PostgreSQL.</li>
       </ul>
     </section>
