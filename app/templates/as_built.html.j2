@@ -144,7 +144,7 @@
   .score b { color: var(--ok); }
   .tests { columns: 2; column-gap: 32px; list-style: none; padding: 0; margin: 0; direction: ltr; text-align: left; font-size: 14px; }
   .tests li { break-inside: avoid; padding: 6px 0; border-bottom: 1px solid var(--rule); display: flex; gap: 10px; }
-  .tests .ok { color: var(--ok); font-weight: 700; } .tests .no { color: var(--red); font-weight: 700; }
+  .tests .ok { color: var(--ok); font-weight: 700; } .tests .no { color: var(--red); font-weight: 700; } .tests .skip { color: var(--muted, #777); font-weight: 700; }
 
   /* runbook */
   .runbook { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 2px solid var(--ink); margin: 0; }
@@ -205,7 +205,7 @@
       <strong>{{ requests|length + intake_rejections|length }}</strong> בקשות,
       <strong>{{ completed }}</strong> הושלמו ואומתו, <strong>{{ stopped }}</strong> נעצרו לפני ביצוע,
       {% if tests %}<strong>{{ tests.passed }} מתוך {{ tests.total }}</strong> בדיקות אוטומטיות עברו,{% endif %}
-      <strong>{{ audit_count }}</strong> אירועים ב־Audit. ה־LLM בריצה: <strong class="en">{% if llm == "gemini" %}Google Gemini API{% else %}{{ llm }}{% endif %}{% if llm_model %}, {{ llm_model }}{% endif %}</strong>.
+      <strong>{{ audit_count }}</strong> אירועים ב־Audit. ה־LLM בריצה: <strong class="en">{% if llm == "gemini" %}Google Gemini API{% elif llm == "gemini-replay" %}Replay של תשובות Gemini מוקלטות (ללא קריאה ל־API){% else %}{{ llm }}{% endif %}{% if llm_model and llm != "gemini-replay" %}, {{ llm_model }}{% endif %}</strong>.
     </p>
   </div>
 </header>
@@ -375,12 +375,12 @@
     <section id="tests">
       <h2>בדיקות</h2>
       {% if tests %}
-      <p class="score"><b>{{ tests.passed }} מתוך {{ tests.total }}</b> בדיקות אוטומטיות עברו בריצה הזו (<code>python -m pytest</code>).</p>
+      <p class="score"><b>{{ tests.passed }} מתוך {{ tests.total }}</b> בדיקות אוטומטיות עברו בריצה הזו (<code>python -m pytest</code>){% if tests.skipped %}, {{ tests.skipped }} דולגו{% endif %}.</p>
       <ul class="tests">
-        {% for c in tests.cases %}<li><span class="{{ 'ok' if c.ok else 'no' }}">{{ "✓" if c.ok else "✗" }}</span><span>{{ c.readable }}</span></li>{% endfor %}
+        {% for c in tests.cases %}<li><span class="{{ 'ok' if c.ok else ('skip' if c.skipped else 'no') }}">{{ "✓" if c.ok else ("–" if c.skipped else "✗") }}</span><span>{{ c.readable }}</span></li>{% endfor %}
       </ul>
       {% else %}
-      <p class="intro">אין תוצאות בדיקות בריצה הזו. כדי לצרף אותן, הריצו <code>python demo.py</code>.</p>
+      <p class="intro">אין תוצאות בדיקות בריצה הזו. כדי לצרף אותן, הריצו <code>python demo.py --tests</code>.</p>
       {% endif %}
     </section>
 
@@ -411,10 +411,11 @@
           <tr><td>Approve: עצירה ואישור אנושי</td><td>האישור נשמר עם <code>plan_hash</code>, ורק המנהל הישיר מורשה. כשהמנהל הישיר הגיש את הבקשה, המנהל שלו מאשר. מאשר מושבת לא יכול לאשר.</td><td>מונע מצב שבו מאשרים דבר אחד ומבצעים דבר אחר, ומונע מאדם לאשר בקשה של עצמו.</td></tr>
 <tr><td>Execute: הפעלת Tool שמשנה מצב</td><td>ממש לפני הכתיבה, הכללים נבדקים שוב על נתונים עדכניים מה־Directory.</td><td>אם העובד הושבת או קיבל כבר את ההרשאה בבקשה אחרת אחרי האישור, הביצוע נחסם.</td></tr>
           <tr><td>Intake: יצירת Request ID</td><td>ה־ID נגזר מ־hash של תוכן הבקשה.</td><td>הגשה חוזרת מזוהה אוטומטית כ־Replay.</td></tr>
-          <tr><td>LLM: מקומי או שירות API</td><td>Google Gemini API בלבד, בלי ספק חלופי. גם הבדיקות האוטומטיות רצות מול Gemini, ורק כשלים מודמים.</td><td>חסר מפתח או ש־Gemini לא זמין? המערכת נעצרת בבטחה לפני כל פעולה.</td></tr>
+          <tr><td>LLM: מקומי או שירות API</td><td>Google Gemini API. מצב <code>replay</code> (נבחר במפורש בלבד) מנגן תשובות ש־Gemini באמת החזיר, מתוך <code>data/llm_recordings.json</code>. אין מודל מזויף.</td><td>חסר מפתח או ש־Gemini לא זמין? המערכת נעצרת בבטחה לפני כל פעולה. Replay מאפשר להריץ את הדמו והבדיקות גם בלי רשת או מכסת API.</td></tr>
           <tr><td>Retrieve: ידע מקומי</td><td>TF-IDF במקום Embeddings.</td><td>חמישה מסמכים. שקוף, דטרמיניסטי ובלי תלויות.</td></tr>
           <tr><td>Verify &amp; Report</td><td>הדוח נוצר בפקודה נפרדת ומכסה את כל הריצות.</td><td>מסמך מסירה אחד לכל התרחישים.</td></tr>
           <tr><td>אין</td><td><code>FAILED_SAFE</code> מאפשר להריץ Execute שוב בלי אישור חדש.</td><td>התקלה הייתה בתשתית ולא בתוכנית, וה־Idempotency מונע כפילות.</td></tr>
+          <tr><td>אין</td><td>בקשה שנעצרה ב־<code>FAILED_SAFE</code> לפני אישור (למשל Gemini לא זמין) רצה מחדש כשמגישים אותה שוב.</td><td>ה־ID נגזר מהתוכן, ולכן בלי זה בקשה כזו הייתה תקועה לתמיד. לא אושר ולא בוצע דבר, אז הרצה חוזרת בטוחה.</td></tr>
         </tbody>
       </table>
     </section>
@@ -426,7 +427,7 @@
       <dl class="runbook">
         <dt class="tone-wait">חסר מידע</dt><dd>לפנות למבקש עם רשימת השדות החסרים ולהגיש בקשה חדשה ומלאה.</dd>
         <dt class="tone-stop">נחסם</dt><dd>לא מבצעים. הסיבה וסעיף ה־Policy מופיעים בתוצאות. בקשות admin ו־Prompt Injection מעבירים ל־Security. עובד שלא קיים ב־Directory נקלט קודם ע״י HR.</dd>
-        <dt class="tone-wait">נעצר בבטחה</dt><dd>לבדוק ב־Audit מה נכשל (<code>python -m app audit &lt;id&gt;</code>). אחרי התיקון מריצים <code>python -m app execute &lt;id&gt;</code>. אין סכנת כפילות.</dd>
+        <dt class="tone-wait">נעצר בבטחה</dt><dd>לבדוק ב־Audit מה נכשל (<code>python -m app audit &lt;id&gt;</code>). אם העצירה הייתה לפני האישור, מגישים את אותה בקשה שוב. אם אחרי האישור, מריצים <code>python -m app execute &lt;id&gt;</code>. אין סכנת כפילות.</dd>
         <dt class="tone-stop">האימות נכשל</dt><dd>הפעולה דווחה כמוצלחת אבל לא נמצאה ב־Directory. לבדוק ידנית ולא להריץ שוב לפני הבדיקה.</dd>
         <dt>איפוס סביבת הדמו</dt><dd><code>python -m app reset</code></dd>
       </dl>
@@ -440,6 +441,7 @@
         <li>זיהוי Prompt Injection מבוסס דפוסים ואינו מלא. ההגנה העיקרית היא שה־LLM לא מחליט, וגם <code>admin</code> נחסם ב־Guard ובסכמה.</li>
         <li>זהות המגיש והמאשר נמסרת כפרמטר, בלי אימות. בפרודקשן הזהות תגיע מ־SSO והאישור מ־Teams או ServiceNow.</li>
         <li>אין הסרה אוטומטית של הרשאות שפג תוקפן. התאריך נשמר, אבל לא מומש תהליך שמסיר אותן.</li>
+        <li>מצב Replay מכסה רק טקסטים שהוקלטו מראש (<code>python -m app record</code>). טקסט חדש במצב זה נעצר בבטחה, כמו מודל שאינו זמין.</li>
         <li>עיבוד סינכרוני למשתמש יחיד. SQLite מתאים לדמו; בפרודקשן PostgreSQL.</li>
       </ul>
     </section>

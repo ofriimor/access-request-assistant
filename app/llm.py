@@ -2,7 +2,8 @@
 LLM layer - used in the "Understand" step: turn free text into structured fields.
 
 One production LLM provider: Google Gemini (GEMINI_API_KEY).
-There is no fake or fallback model: the application and the tests both call the Gemini API.
+There is no fake model. For offline runs, LLM_PROVIDER=replay plays back answers that
+Gemini really gave (data/llm_recordings.json); it is never used as a silent fallback.
 
 The LLM output is NEVER trusted directly: it is parsed and validated against
 schemas.Understanding. Invalid output -> one retry with the error -> fail safe.
@@ -107,9 +108,13 @@ def _post_json(url: str, headers: dict, body: dict, timeout: int = 60) -> dict:
             time.sleep(delay + random.uniform(0, 0.3))
             attempt += 1
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise LLMServiceError(
-                f"LLM API connection failed ({type(exc).__name__})"
-            ) from None
+            # A timeout or a dropped connection is usually temporary: retry a bounded number of times.
+            if attempt + 1 >= 3:
+                raise LLMServiceError(
+                    f"LLM API connection failed ({type(exc).__name__})"
+                ) from None
+            time.sleep(min(2 ** (attempt + 1), 15) + random.uniform(0, 0.3))
+            attempt += 1
         except (UnicodeError, json.JSONDecodeError):
             raise LLMServiceError("LLM API returned malformed JSON") from None
 
@@ -150,11 +155,43 @@ class GeminiLLM:
             raise LLMServiceError("Gemini API returned no usable response") from exc
 
 
+class ReplayLLM:
+    """Plays back answers that Gemini really gave, recorded in data/llm_recordings.json.
+
+    For running the demo and the tests without network access or API quota (an outage
+    during a live demo, CI without a secret). It never invents an answer: a request text
+    that was not recorded fails exactly like an unreachable model (FAILED_SAFE).
+    Record or refresh the answers with a real key:  python -m app record
+    """
+    name = "gemini-replay"
+
+    def __init__(self, path=None):
+        from .recordings import load_recordings
+        self.path, self.recordings = load_recordings(path)
+        self.model = "replay of " + ", ".join(sorted({r.get("model", "?") for r in self.recordings.values()}))
+
+    def has(self, request_text: str) -> bool:
+        from .recordings import normalize
+        return normalize(request_text) in self.recordings
+
+    def complete(self, system: str, user: str) -> str:
+        from .recordings import normalize
+        m = re.search(r"<request>\n(.*?)\n</request>", user, re.DOTALL)
+        rec = self.recordings.get(normalize(m.group(1))) if m else None
+        if rec is None:
+            raise LLMServiceError("no recorded Gemini answer for this request text "
+                                  "(record it with: python -m app record)")
+        return json.dumps(rec["answer"], ensure_ascii=False)
+
+
 def get_llm():
-    """Gemini is the only runtime provider. Never silently fall back."""
+    """LLM_PROVIDER=gemini (default): the Gemini API. LLM_PROVIDER=replay: recorded Gemini
+    answers, chosen explicitly. Never falls back silently from one to the other."""
     mode = os.environ.get("LLM_PROVIDER", "gemini").lower().strip()
+    if mode == "replay":
+        return ReplayLLM()
     if mode != "gemini":
-        raise ValueError("Only LLM_PROVIDER=gemini is supported")
+        raise ValueError("Only LLM_PROVIDER=gemini (or LLM_PROVIDER=replay for recorded answers) is supported")
     if not os.environ.get("GEMINI_API_KEY"):
         raise ValueError("GEMINI_API_KEY is required for Gemini requests")
     return GeminiLLM()
