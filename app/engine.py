@@ -26,6 +26,9 @@ from .tools import ToolPermanentError, ToolTransientError, Toolbox
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+MODEL_PROBLEM = ("The language model (Gemini) is not available right now. The request was not "
+                 "processed and nothing was executed. Please try again in a few minutes.")
+
 
 # ------------------------------------------------------------- errors
 class IntakeValidationError(Exception):
@@ -142,7 +145,11 @@ class Engine:
 
         rid = make_request_id(req)
         existing = self.store.get(rid)
-        if existing:
+        # A request that stopped on an outage BEFORE any approval (Gemini down, directory
+        # timeout) is run again; nothing was approved or executed, so this is safe.
+        retry = existing is not None and existing["status"] == Status.FAILED_SAFE.value \
+            and not existing.get("approval")
+        if existing and not retry:
             self.audit.log(rid, "intake", "replay_detected",
                            {"status": existing["status"], "action": "returned existing record, nothing re-run"})
             existing["replayed"] = True
@@ -151,8 +158,16 @@ class Engine:
         state = {"request_id": rid, "status": Status.RECEIVED.value, "input": req.model_dump(),
                  "created_at": now_iso(), "llm_provider": self.llm.name,
                  "history": [{"ts": now_iso(), "status": "RECEIVED", "note": "intake ok"}]}
-        self.store.create(state)
-        self.audit.log(rid, "intake", "accepted", {"input": req.model_dump()})
+        if retry:
+            state["created_at"] = existing["created_at"]
+            state["history"] = existing["history"] + [
+                {"ts": now_iso(), "status": "RECEIVED", "note": "re-submitted after a safe stop"}]
+            self.store.save(state)
+            self.audit.log(rid, "intake", "retry_after_failed_safe",
+                           {"previous_error": existing.get("error"), "input": req.model_dump()})
+        else:
+            self.store.create(state)
+            self.audit.log(rid, "intake", "accepted", {"input": req.model_dump()})
 
         try:
             self._understand(state)
@@ -163,7 +178,13 @@ class Engine:
                                  "assumptions": [], "risk_level": "high", "duration_days": None}
             transition(state, Status.BLOCKED, str(e))
             self.audit.log(rid, "retrieve", "unknown_user", {"reason": str(e)})
-        except (LLMOutputError, LLMServiceError, ToolFailed, ToolSchemaError, ToolNotAllowed) as e:
+        except (LLMOutputError, LLMServiceError) as e:
+            # The model is not available or answered nonsense: tell the user plainly.
+            state["error"] = str(e)
+            state["model_problem"] = MODEL_PROBLEM
+            transition(state, Status.FAILED_SAFE, f"model problem, stopped before any action: {e}")
+            self.audit.log(rid, "understand", "model_unavailable", {"error": str(e)})
+        except (ToolFailed, ToolSchemaError, ToolNotAllowed) as e:
             state["error"] = str(e)
             transition(state, Status.FAILED_SAFE, f"stopped before any action: {e}")
             self.audit.log(rid, "submit", "failed_safe", {"error": str(e)})

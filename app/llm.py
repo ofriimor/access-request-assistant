@@ -3,6 +3,8 @@ LLM layer - used in the "Understand" step: turn free text into structured fields
 
 One production LLM provider: Google Gemini (GEMINI_API_KEY).
 There is no fake or fallback model: the application and the tests both call the Gemini API.
+If Gemini cannot be reached, the request stops (FAILED_SAFE) and the user is told
+that the model is unavailable. Nothing is executed and no answer is invented.
 
 The LLM output is NEVER trusted directly: it is parsed and validated against
 schemas.Understanding. Invalid output -> one retry with the error -> fail safe.
@@ -107,9 +109,13 @@ def _post_json(url: str, headers: dict, body: dict, timeout: int = 60) -> dict:
             time.sleep(delay + random.uniform(0, 0.3))
             attempt += 1
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise LLMServiceError(
-                f"LLM API connection failed ({type(exc).__name__})"
-            ) from None
+            # A timeout or a dropped connection is usually temporary: retry a bounded number of times.
+            if attempt + 1 >= 3:
+                raise LLMServiceError(
+                    f"LLM API connection failed ({type(exc).__name__})"
+                ) from None
+            time.sleep(min(2 ** (attempt + 1), 15) + random.uniform(0, 0.3))
+            attempt += 1
         except (UnicodeError, json.JSONDecodeError):
             raise LLMServiceError("LLM API returned malformed JSON") from None
 

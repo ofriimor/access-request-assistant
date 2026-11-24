@@ -7,6 +7,8 @@ or compromised model response, a network error), which cannot be produced on dem
 from a live service.
 
 The tests need GEMINI_API_KEY in .env (or in the shell) and use API quota.
+If Gemini stays unavailable (HTTP 503, timeout, quota), the test is reported as
+"MODEL PROBLEM - Gemini is not available" instead of passing or failing.
 """
 import json
 import os
@@ -103,8 +105,12 @@ class SessionCachedGemini:
             try:
                 return self.client.complete(system, user)
             except LLMServiceError as e:
-                if "429" not in str(e) or wait is None:
+                # 429 = quota, 503 / timeout = Gemini is temporarily down. Not a bug in this system.
+                if not any(x in str(e) for x in ("429", "503", "connection failed")):
                     raise
+                if wait is None:
+                    # Do not fake an answer and do not report a false failure: say what happened.
+                    pytest.skip(f"MODEL PROBLEM - Gemini is not available ({e}); this test was not run")
                 time.sleep(wait)
 
 

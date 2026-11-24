@@ -23,6 +23,11 @@ INJECTION_PATTERNS = [
     r"system prompt",
     r"disregard (the )?(policy|rules)",
     r"bypass",
+    # Hebrew: "ignore (all) the previous instructions", "admin mode", "approve automatically"
+    r"(ת|ה)?תעלם\s+מ(כל\s+)?ה?(הוראות|כללים|חוקים)",
+    r"מצב\s+(אדמין|מנהל\s+מערכת)",
+    r"(אשר|תאשר|לאשר)\s+(את\s+זה\s+)?(אוטומטית|באופן\s+אוטומטי)",
+    r"עקוף|לעקוף|תעקוף",
 ]
 
 
