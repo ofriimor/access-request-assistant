@@ -1,16 +1,14 @@
 """
 Shared test setup.
 
-Every test that needs language understanding uses Google Gemini:
+Every test that needs language understanding talks to the Google Gemini API.
+There is no fake model: the only simulated parts are failures (a tool timeout, a broken
+or compromised model response, a network error), which cannot be produced on demand
+from a live service.
 
-  live    (default when GEMINI_API_KEY is set)   the Gemini API is called
-  replay  (no key, or TEST_LLM=replay)           answers Gemini really gave, recorded in
-                                                 data/llm_recordings.json (python -m app record)
-
-There is no hand-written fake model. Besides replay, only failures are simulated (a tool
-timeout, a broken or compromised model response, a network error), because they cannot be
-produced on demand from a live service. The mode is printed in the pytest header.
-Force a mode with TEST_LLM=live or TEST_LLM=replay.
+The tests need GEMINI_API_KEY in .env (or in the shell) and use API quota.
+If Gemini stays unavailable (HTTP 503, timeout, quota), the test is reported as
+"MODEL PROBLEM - Gemini is not available" instead of passing or failing.
 """
 import json
 import os
@@ -72,22 +70,6 @@ def has_gemini_key() -> bool:
     return gemini_key_problem() is None
 
 
-def llm_test_mode() -> str:
-    forced = os.environ.get("TEST_LLM", "").strip().lower()
-    if forced in ("live", "replay"):
-        return forced
-    return "live" if has_gemini_key() else "replay"
-
-
-
-
-def pytest_report_header(config):
-    if llm_test_mode() == "live":
-        return "LLM: live Gemini API"
-    return (f"LLM: REPLAY of recorded Gemini answers (data/llm_recordings.json) - "
-            f"{gemini_key_problem() or 'TEST_LLM=replay'}")
-
-
 class SessionCachedGemini:
     """The Gemini client. An identical prompt is sent once per test run and its
     answer is reused, so repeated scenarios do not hit the API rate limit."""
@@ -100,8 +82,7 @@ class SessionCachedGemini:
         self._answers: dict[tuple[str, str], str] = {}
 
     def answered(self, request_text: str) -> bool:
-        """True if Gemini answered the prompt for this request text during this run
-        (live, or a recorded answer in replay mode)."""
+        """True if Gemini really answered the prompt for this request text during this run."""
         from app.llm import build_user_prompt
         prompt = build_user_prompt(request_text)
         return any(user == prompt for _, user in self._answers)
@@ -124,32 +105,18 @@ class SessionCachedGemini:
             try:
                 return self.client.complete(system, user)
             except LLMServiceError as e:
-                # 429 = quota; 503 / timeout = a temporary outage of the service, not of this system
-                temporary = any(x in str(e) for x in ("429", "503", "connection failed"))
-                if not temporary or wait is None:
+                # 429 = quota, 503 / timeout = Gemini is temporarily down. Not a bug in this system.
+                if not any(x in str(e) for x in ("429", "503", "connection failed")):
                     raise
+                if wait is None:
+                    # Do not fake an answer and do not report a false failure: say what happened.
+                    pytest.skip(f"MODEL PROBLEM - Gemini is not available ({e}); this test was not run")
                 time.sleep(wait)
-
-
-class RecordedGemini(SessionCachedGemini):
-    """Replay mode: answers Gemini gave earlier. A text that was never recorded skips the
-    test (it is not a failure of the system) and says how to record it."""
-    RATE_LIMIT_WAITS = ()
-
-    def complete(self, system: str, user: str) -> str:
-        import re
-        m = re.search(r"<request>\n(.*?)\n</request>", user, re.DOTALL)
-        if m and not self.client.has(m.group(1)):
-            pytest.skip("no recorded Gemini answer for this text - run: python -m app record")
-        return super().complete(system, user)
 
 
 @pytest.fixture(scope="session")
 def gemini():
-    """One Gemini client for the whole test run: the live API, or recorded answers."""
-    if llm_test_mode() == "replay":
-        from app.llm import ReplayLLM
-        return RecordedGemini(ReplayLLM())
+    """One Gemini client for the whole test run."""
     problem = gemini_key_problem()
     if problem:
         pytest.skip(f"Gemini key not usable: {problem}")
@@ -159,14 +126,6 @@ def gemini():
             mp.setenv(k, v)
         client = GeminiLLM()
     return SessionCachedGemini(client)
-
-
-@pytest.fixture(scope="session")
-def live_gemini(gemini):
-    """For the few tests that are about the Gemini API itself."""
-    if not isinstance(gemini.client, __import__("app.llm", fromlist=["GeminiLLM"]).GeminiLLM):
-        pytest.skip("needs the live Gemini API (set GEMINI_API_KEY)")
-    return gemini
 
 
 @pytest.fixture

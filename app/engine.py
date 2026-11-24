@@ -26,6 +26,9 @@ from .tools import ToolPermanentError, ToolTransientError, Toolbox
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+MODEL_PROBLEM = ("The language model (Gemini) is not available right now. The request was not "
+                 "processed and nothing was executed. Please try again in a few minutes.")
+
 
 # ------------------------------------------------------------- errors
 class IntakeValidationError(Exception):
@@ -175,7 +178,13 @@ class Engine:
                                  "assumptions": [], "risk_level": "high", "duration_days": None}
             transition(state, Status.BLOCKED, str(e))
             self.audit.log(rid, "retrieve", "unknown_user", {"reason": str(e)})
-        except (LLMOutputError, LLMServiceError, ToolFailed, ToolSchemaError, ToolNotAllowed) as e:
+        except (LLMOutputError, LLMServiceError) as e:
+            # The model is not available or answered nonsense: tell the user plainly.
+            state["error"] = str(e)
+            state["model_problem"] = MODEL_PROBLEM
+            transition(state, Status.FAILED_SAFE, f"model problem, stopped before any action: {e}")
+            self.audit.log(rid, "understand", "model_unavailable", {"error": str(e)})
+        except (ToolFailed, ToolSchemaError, ToolNotAllowed) as e:
             state["error"] = str(e)
             transition(state, Status.FAILED_SAFE, f"stopped before any action: {e}")
             self.audit.log(rid, "submit", "failed_safe", {"error": str(e)})
