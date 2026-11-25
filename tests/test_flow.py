@@ -25,6 +25,8 @@ def test_expected_policy_is_top_knowledge_match(engine):
     state = engine.submit(load_request("allow/00_happy_path"))
     assert state["knowledge"][0]["policy_id"] == "POL-CRM-01"
     assert len(state["knowledge"]) >= 1
+    # the rules always check the general policy too, even when search does not list it
+    assert state["policies_applied"] == ["POL-GEN-00", "POL-CRM-01"]
     assert "POL-CRM-01" in state["plan"]["policy_refs"]
 
 

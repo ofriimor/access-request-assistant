@@ -234,6 +234,10 @@ class Engine:
         if und["system"]:
             state["policy"] = self.call_tool(rid, "read_policy", {"system": und["system"]},
                                              "retrieve").model_dump(exclude={"text"})
+        # The policies the rules check: the general policy always, plus the system's policy.
+        # (Not the same as the search results above, which only show the closest sources.)
+        state["policies_applied"] = [self.tools.index.general().policy_id] + \
+            ([state["policy"]["policy_id"]] if state["policy"] else [])
         transition(state, Status.RETRIEVED)
         self.store.save(state)
 

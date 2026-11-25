@@ -257,7 +257,8 @@
             {% endif %}
 
             <div class="proof">
-              {% if r.knowledge %}<span>מקורות: <b class="en">{{ r.knowledge|map(attribute="policy_id")|join(", ") }}</b></span>{% endif %}
+              {% if r.policies_applied %}<span>מדיניות שנבדקה: <b class="en">{{ r.policies_applied|join(", ") }}</b></span>{% endif %}
+              {% if r.knowledge %}<span>תוצאות חיפוש: <b class="en">{{ r.knowledge|map(attribute="policy_id")|join(", ") }}</b></span>{% endif %}
               {% if r.plan %}<span>סיכון: <b class="en">{{ r.plan.risk_level }}</b></span>{% endif %}
               {% if r.blocked_before_approval %}<span>ניסיון ביצוע לפני אישור: <b>נחסם</b></span>{% endif %}
               {% if r.approval %}<span>{{ "אושר" if r.approval.approved else "נדחה" }} ע״י <b class="en">{{ r.approval.approver_id }}</b>{% if r.approval.reason %}, <bdi>"{{ r.approval.reason }}"</bdi>{% endif %}</span>{% endif %}

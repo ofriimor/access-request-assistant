@@ -40,8 +40,11 @@ def show(state: dict) -> None:
         print(f"  MISSING : {m}")
     for a in d.get("assumptions", []):
         print(f"  ASSUME  : {a}")
+    if state.get("policies_applied"):
+        print("  Policies: " + ", ".join(state["policies_applied"]) + "   (checked by the rules)")
     if state.get("knowledge"):
-        print("  Sources : " + ", ".join(f"{h['policy_id']} ({h['score']})" for h in state["knowledge"]))
+        print("  Search  : " + ", ".join(f"{h['policy_id']} ({h['score']})" for h in state["knowledge"])
+              + "   (closest policies, TF-IDF score)")
     if state["status"] == "AWAITING_APPROVAL":
         p = state["plan"]
         print("\n  ┌─ APPROVAL NEEDED ─────────────────────────────────────────")
