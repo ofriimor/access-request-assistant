@@ -244,25 +244,51 @@ If Gemini is down during a test run, the affected tests are reported as **MODEL 
 
 ## Architecture
 
+### Flow — every check and where it stops
+
 ```mermaid
-flowchart TB
-    U([Employee]) --> CLI["Command line<br/>demo.py · app/__main__.py"]
-    M([Manager]) -- approve / reject --> CLI
-    CLI --> ENG["engine.py<br/>orchestrates the 7 steps"]
+flowchart TD
+    A["submit · interactive · demo.py"] --> B["Input schema<br/>schemas.py"]
+    B -->|missing or invalid field| R1["INPUT_REJECTED · no request ID"]
+    B -->|valid| C["Same request ID in state.db?"]
+    C -->|yes| RP["Replay: existing record returned, nothing re-run"]
+    C -->|no| D["Gemini: text → fields<br/>llm.py · schema-checked JSON"]
+    D -->|unavailable or invalid answer after retries| FS1["FAILED_SAFE · MODEL PROBLEM"]
+    D --> E["Retrieve via tool gateway<br/>search_policies · read_policy · lookup_user"]
+    E -->|tool timeout, 3 attempts| FS2["FAILED_SAFE"]
+    E --> G["guard.py rules"]
+    G -->|"admin · department · level · injection · disabled or unknown user · already has access"| BL["BLOCKED"]
+    G -->|"no system · level · reason · unclear intent"| NI["NEEDS_INFO"]
+    G -->|allowed| P["Plan + plan_hash<br/>approver: direct manager, or the manager's manager"]
+    P --> W["AWAITING_APPROVAL"]
+    W -->|execute before approval| X1["refused"]
+    W -->|wrong approver or own request| X2["refused"]
+    W -->|manager rejects| RJ["REJECTED"]
+    W -->|right manager approves| H["plan_hash unchanged?"]
+    H -->|no| X3["refused: re-approval needed"]
+    H -->|yes| I["idempotency key already used?"]
+    I -->|yes| K["previous result returned, no new grant"]
+    I -->|no| J["rules re-checked on fresh directory data"]
+    J -->|now blocked| BL2["BLOCKED"]
+    J -->|still allowed| T["grant_access"]
+    T -->|timeout, 3 attempts| FS3["FAILED_SAFE · execute again, approval kept"]
+    T --> V["Verify: directory read again<br/>exists · exactly one · system · level · expiry"]
+    V -->|mismatch| VF["VERIFICATION_FAILED"]
+    V -->|ok| OK["COMPLETED → audit.jsonl + As-Built HTML"]
 
-    ENG --> LLM["llm.py"] -.-> GEM(("Google<br/>Gemini"))
-    ENG --> GRD["guard.py<br/>decision rules"]
-    ENG --> GATE{{"Approval gate<br/>right manager · plan hash"}}
-    ENG --> TLS["tools.py"]
-    TLS --> KB[("policies/")]
-    TLS --> DIR[("directory.json")]
-    ENG --> ST[("state.db · SQLite")]
-    ENG --> AUD[("audit.jsonl")]
-    ENG --> REP["report.py<br/>As-Built HTML"]
-
-    classDef human fill:#fff8e8,stroke:#d28a00
-    class M,GATE human
+    classDef stop fill:#fff2f0,stroke:#b42318
+    classDef wait fill:#fff8e8,stroke:#d28a00
+    classDef ok fill:#eefaf5,stroke:#168b68
+    classDef llm fill:#f5f1ff,stroke:#6a4df5
+    class R1,BL,BL2,RJ,X1,X2,X3,VF stop
+    class NI,FS1,FS2,FS3,W wait
+    class OK,K,RP ok
+    class D llm
 ```
+
+### Components
+
+<p align="center"><img src="docs/architecture.svg" alt="Components: the 7 steps, Gemini, the rules, the approval gate, the tool gateway, tools and data" width="100%"></p>
 
 | Path | Responsibility |
 |---|---|
