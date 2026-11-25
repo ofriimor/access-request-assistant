@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" width="1000" height="640" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b6b82"/>
+    </marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6a4df5"/>
+    </marker>
+    <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b66a00"/>
+    </marker>
+    <style>
+      .box  { fill:#ffffff; stroke:#9fb1c8; stroke-width:1.2; }
+      .step { fill:#eef4fb; stroke:#7f9bbd; stroke-width:1.2; }
+      .llm  { fill:#f5f1ff; stroke:#6a4df5; stroke-width:1.4; }
+      .hum  { fill:#fff8e8; stroke:#d28a00; stroke-width:1.6; }
+      .wr   { fill:#eefaf5; stroke:#168b68; stroke-width:1.6; }
+      .data { fill:#f7f9fc; stroke:#9fb1c8; stroke-width:1.2; }
+      .t  { font-size:14px; font-weight:700; fill:#172236; text-anchor:middle; }
+      .s  { font-size:11.5px; fill:#5b6b82; text-anchor:middle; }
+      .lbl{ font-size:11.5px; fill:#5b6b82; }
+      .ttl{ font-size:12px; font-weight:700; fill:#5b6b82; letter-spacing:.06em; }
+      .ln { stroke:#5b6b82; stroke-width:1.4; fill:none; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="640" fill="#ffffff"/>
+
+  <!-- people -->
+  <rect class="hum" x="21" y="18" width="118" height="46" rx="23"/>
+  <text class="t" x="80" y="38">Employee</text>
+  <text class="s" x="80" y="54">submits a request</text>
+
+  <rect class="hum" x="581" y="18" width="118" height="46" rx="23"/>
+  <text class="t" x="640" y="38">Manager</text>
+  <text class="s" x="640" y="54">approves / rejects</text>
+
+  <line class="ln" x1="80" y1="64" x2="80" y2="146" marker-end="url(#a)"/>
+  <text class="lbl" x="88" y="100">CLI · demo.py</text>
+  <line x1="640" y1="64" x2="640" y2="146" stroke="#b66a00" stroke-width="1.8" marker-end="url(#aa)"/>
+  <text class="lbl" x="648" y="100" fill="#b66a00">approve / reject</text>
+  <text class="lbl" x="648" y="114" fill="#b66a00">the exact plan</text>
+
+  <!-- engine frame -->
+  <rect x="10" y="124" width="980" height="102" rx="14" fill="none" stroke="#7f9bbd" stroke-dasharray="5 4"/>
+  <text class="ttl" x="978" y="140" text-anchor="end">ENGINE.PY — THE 7 STEPS</text>
+
+  <!-- steps -->
+  <rect class="step" x="21"  y="150" width="118" height="62" rx="9"/>
+  <text class="t" x="80"  y="176">1 Intake</text><text class="s" x="80" y="194">schema · request ID</text>
+  <rect class="llm"  x="161" y="150" width="118" height="62" rx="9"/>
+  <text class="t" x="220" y="176">2 Understand</text><text class="s" x="220" y="194">text → fields</text>
+  <rect class="step" x="301" y="150" width="118" height="62" rx="9"/>
+  <text class="t" x="360" y="176">3 Retrieve</text><text class="s" x="360" y="194">policy · users</text>
+  <rect class="step" x="441" y="150" width="118" height="62" rx="9"/>
+  <text class="t" x="500" y="176">4 Decide</text><text class="s" x="500" y="194">rules, not the LLM</text>
+  <rect class="hum"  x="581" y="150" width="118" height="62" rx="9"/>
+  <text class="t" x="640" y="176">5 Approve</text><text class="s" x="640" y="194">stop · plan_hash</text>
+  <rect class="wr"   x="721" y="150" width="118" height="62" rx="9"/>
+  <text class="t" x="780" y="176">6 Execute</text><text class="s" x="780" y="194">re-check, then act</text>
+  <rect class="step" x="861" y="150" width="118" height="62" rx="9"/>
+  <text class="t" x="920" y="176">7 Verify</text><text class="s" x="920" y="194">read back · report</text>
+
+  <line class="ln" x1="139" y1="181" x2="159" y2="181" marker-end="url(#a)"/>
+  <line class="ln" x1="279" y1="181" x2="299" y2="181" marker-end="url(#a)"/>
+  <line class="ln" x1="419" y1="181" x2="439" y2="181" marker-end="url(#a)"/>
+  <line class="ln" x1="559" y1="181" x2="579" y2="181" marker-end="url(#a)"/>
+  <line class="ln" x1="699" y1="181" x2="719" y2="181" marker-end="url(#a)"/>
+  <line class="ln" x1="839" y1="181" x2="859" y2="181" marker-end="url(#a)"/>
+
+  <!-- LLM -->
+  <line x1="220" y1="212" x2="220" y2="256" stroke="#6a4df5" stroke-width="1.4" marker-end="url(#ap)"/>
+  <rect class="llm" x="161" y="258" width="118" height="50" rx="9"/>
+  <text class="t" x="220" y="280">llm.py</text><text class="s" x="220" y="297">JSON + schema</text>
+  <line x1="220" y1="308" x2="220" y2="350" stroke="#6a4df5" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ap)"/>
+  <text class="lbl" x="228" y="334" fill="#6a4df5">HTTPS</text>
+  <rect class="llm" x="161" y="352" width="118" height="50" rx="25" stroke-dasharray="4 3"/>
+  <text class="t" x="220" y="374">Gemini API</text><text class="s" x="220" y="391">external</text>
+
+  <!-- guard -->
+  <line class="ln" x1="500" y1="212" x2="500" y2="256" marker-end="url(#a)"/>
+  <rect class="box" x="441" y="258" width="118" height="50" rx="9"/>
+  <text class="t" x="500" y="280">guard.py</text><text class="s" x="500" y="297">deterministic rules</text>
+
+  <!-- tool gateway -->
+  <line class="ln" x1="360" y1="212" x2="360" y2="350" marker-end="url(#a)"/>
+  <line class="ln" x1="780" y1="212" x2="780" y2="350" marker-end="url(#a)"/>
+  <line class="ln" x1="920" y1="212" x2="920" y2="350" marker-end="url(#a)"/>
+  <rect class="box" x="301" y="352" width="678" height="50" rx="9"/>
+  <text class="t" x="640" y="374">Tool gateway</text>
+  <text class="s" x="640" y="391">allow-list · input/output schema · bounded retry · audit of every call</text>
+
+  <!-- tools -->
+  <text class="ttl" x="624" y="436">TOOLS · TOOLS.PY</text>
+  <line class="ln" x1="390" y1="402" x2="390" y2="446" marker-end="url(#a)"/>
+  <line class="ln" x1="610" y1="402" x2="610" y2="446" marker-end="url(#a)"/>
+  <line class="ln" x1="850" y1="402" x2="850" y2="446" marker-end="url(#a)"/>
+  <rect class="box" x="301" y="448" width="178" height="50" rx="9"/>
+  <text class="t" x="390" y="470">search_policies</text><text class="s" x="390" y="487">read_policy · read</text>
+  <rect class="box" x="541" y="448" width="138" height="50" rx="9"/>
+  <text class="t" x="610" y="470">lookup_user</text><text class="s" x="610" y="487">read</text>
+  <rect class="wr"  x="761" y="448" width="178" height="50" rx="9"/>
+  <text class="t" x="850" y="470">grant_access</text><text class="s" x="850" y="487">write · only after approval</text>
+
+  <!-- data -->
+  <line class="ln" x1="390" y1="498" x2="390" y2="542" marker-end="url(#a)"/>
+  <line class="ln" x1="610" y1="498" x2="610" y2="542" marker-end="url(#a)"/>
+  <line class="ln" x1="850" y1="498" x2="850" y2="542" marker-end="url(#a)"/>
+  <rect class="data" x="301" y="544" width="178" height="50" rx="9"/>
+  <text class="t" x="390" y="566">data/policies/</text><text class="s" x="390" y="583">knowledge base · 5 files</text>
+  <rect class="data" x="541" y="544" width="398" height="50" rx="9"/>
+  <text class="t" x="740" y="566">directory.json</text><text class="s" x="740" y="583">users, managers, grants (simulated Entra ID)</text>
+
+  <!-- state + audit -->
+  <line class="ln" x1="60" y1="212" x2="60" y2="446" marker-end="url(#a)"/>
+  <text class="lbl" x="68" y="330">every step</text>
+  <rect class="data" x="21" y="448" width="118" height="50" rx="9"/>
+  <text class="t" x="80" y="470">state.db</text><text class="s" x="80" y="487">request state</text>
+  <rect class="data" x="161" y="448" width="118" height="50" rx="9"/>
+  <text class="t" x="220" y="470">audit.jsonl</text><text class="s" x="220" y="487">append-only</text>
+  <line class="ln" x1="139" y1="473" x2="159" y2="473"/>
+  <line class="ln" x1="220" y1="498" x2="220" y2="542" marker-end="url(#a)"/>
+  <rect class="box" x="161" y="544" width="118" height="50" rx="9"/>
+  <text class="t" x="220" y="566">As-Built</text><text class="s" x="220" y="583">report.py · HTML</text>
+
+  <!-- legend -->
+  <rect class="llm" x="21"  y="612" width="14" height="14" rx="3"/><text class="lbl" x="41"  y="623">LLM</text>
+  <rect class="hum" x="91"  y="612" width="14" height="14" rx="3"/><text class="lbl" x="111" y="623">human</text>
+  <rect class="wr"  x="171" y="612" width="14" height="14" rx="3"/><text class="lbl" x="191" y="623">changes state</text>
+  <rect class="step" x="281" y="612" width="14" height="14" rx="3"/><text class="lbl" x="301" y="623">code</text>
+</svg>
