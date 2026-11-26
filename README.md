@@ -51,58 +51,13 @@ Also available: `reject REQ-<id> --by <id> --reason "..."`, `execute REQ-<id> --
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    subgraph S1["① You submit"]
-        A["You type a request<br/><i>interactive · demo · scenario</i>"] --> B(["Is the input complete?"])
-        B -->|yes| C(["Same request seen before?"])
-    end
-    B -->|no| X1["❌ <b>Input rejected</b><br/>e.g. missing user ID"]
-    C -->|"yes, already done"| X2["↩️ <b>Earlier result returned</b><br/>nothing runs twice"]
-    C -->|no| D
+### The 7 steps
 
-    subgraph S2["② The system checks"]
-        D["<b>Gemini reads the text</b><br/>system · access level · days · reason"] --> E["Looks up the employee<br/>and the policy"]
-        E --> F(["The rules decide"])
-    end
-    D -->|Gemini down| X3["⚠️ <b>MODEL PROBLEM</b><br/>stops, nothing is done"]
-    F -->|something missing| X4["❓ <b>NEEDS_INFO</b><br/>says what to add"]
-    F -->|not allowed| X5["⛔ <b>BLOCKED</b><br/>with the policy reason"]
-    F -->|allowed| G
+<p align="center"><img src="docs/steps.svg" alt="The 7 steps: Intake, Understand, Retrieve, Decide, Approve, Execute, Verify and Report, with what each does and the files and tools it uses" width="100%"></p>
 
-    subgraph S3["③ The manager decides"]
-        G["⏸️ <b>Waiting for approval</b><br/>shows the exact plan<br/>and who must approve"]
-    end
-    G -->|rejects| X6["⛔ <b>REJECTED</b><br/>submit again to retry"]
-    G -->|"wrong person · own request"| X7["⛔ <b>Approval refused</b>"]
-    G -->|approves| I
+### Flow — every check and where it stops
 
-    subgraph S4["④ The system acts"]
-        I(["Plan and data still the same?"]) -->|yes| J["<b>Grants the access</b>"]
-        J --> K(["Reads the directory again:<br/>is the grant there?"])
-    end
-    I -->|changed| X8["⛔ <b>Approval needed again</b>"]
-    J -->|"tool down after 3 tries"| X9["⚠️ <b>FAILED_SAFE</b><br/>run execute again later"]
-    K -->|yes| OK["✅ <b>COMPLETED</b><br/>audit + As-Built report"]
-    K -->|no| X10["⛔ <b>VERIFICATION_FAILED</b>"]
-
-    classDef stop fill:#fff2f0,stroke:#b42318,color:#172236
-    classDef warn fill:#fff8e8,stroke:#d28a00,color:#172236
-    classDef ok fill:#eefaf5,stroke:#168b68,color:#172236
-    classDef llm fill:#f5f1ff,stroke:#6a4df5,color:#172236
-    classDef human fill:#fff8e8,stroke:#d28a00,stroke-width:2px,color:#172236
-    class X1,X5,X6,X7,X8,X10 stop
-    class X3,X4,X9 warn
-    class OK,X2 ok
-    class D llm
-    class G human
-    style S1 fill:#f7fbff,stroke:#cfe2f3
-    style S2 fill:#f7fbff,stroke:#cfe2f3
-    style S3 fill:#fffdf6,stroke:#f0d7a8
-    style S4 fill:#f7fbff,stroke:#cfe2f3
-```
-
-<p align="center"><img src="docs/architecture.svg" alt="Components: the 7 steps, Gemini, the rules, the approval gate, the tool gateway, tools and data" width="100%"></p>
+<p align="center"><img src="docs/flow.svg" alt="Flow of a request, colored by step, with the file or tool for each check and every place it stops" width="100%"></p>
 
 | Path | Responsibility |
 |---|---|

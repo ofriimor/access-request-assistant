@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 690" width="1000" height="690" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="5" refY="9" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,0 L5,10 z" fill="#9aa7b8"/>
+    </marker>
+    <style>
+      .num  { font-size:22px; font-weight:800; fill:#ffffff; }
+      .name { font-size:16px; font-weight:700; fill:#ffffff; }
+      .what { font-size:14.5px; font-weight:700; fill:#172236; }
+      .how  { font-size:12.5px; fill:#4d5b70; }
+      .file { font-size:12.5px; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+      .hdr  { font-size:11px; font-weight:700; fill:#8a96a8; letter-spacing:.08em; }
+      .foot { font-size:12px; fill:#4d5b70; }
+    </style>
+  </defs>
+  <rect width="1000" height="690" fill="#ffffff"/>
+
+  <text class="hdr" x="232" y="18">WHAT IT DOES · HOW</text>
+  <text class="hdr" x="732" y="18">FILES · TOOLS</text>
+
+  <!-- 1 Intake -->
+  <g transform="translate(0,28)">
+    <rect x="20" y="0" width="960" height="70" rx="10" fill="#eef2f7" stroke="#4a5d78"/>
+    <rect x="20" y="0" width="190" height="70" rx="10" fill="#4a5d78"/><rect x="200" y="0" width="10" height="70" fill="#4a5d78"/>
+    <text class="num" x="38" y="44">1</text><text class="name" x="66" y="42">Intake</text>
+    <text class="what" x="232" y="29">Accepts the request and gives it an ID</text>
+    <text class="how"  x="232" y="51">Every field validated · ID = hash of the content, so a repeat is caught</text>
+    <line x1="712" y1="12" x2="712" y2="58" stroke="#4a5d78" stroke-opacity=".3"/>
+    <text class="file" x="732" y="29" fill="#4a5d78">schemas.py · engine.py</text>
+    <text class="file" x="732" y="50" fill="#4a5d78">state.py → state.db</text>
+  </g>
+  <polyline points="107,100 115,108 123,100" fill="none" stroke="#9aa7b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 2 Understand -->
+  <g transform="translate(0,116)">
+    <rect x="20" y="0" width="960" height="70" rx="10" fill="#f1edff" stroke="#6a4df5"/>
+    <rect x="20" y="0" width="190" height="70" rx="10" fill="#6a4df5"/><rect x="200" y="0" width="10" height="70" fill="#6a4df5"/>
+    <text class="num" x="38" y="44">2</text><text class="name" x="66" y="42">Understand</text>
+    <text class="what" x="232" y="29">Turns free text into structured fields</text>
+    <text class="how"  x="232" y="51">Gemini returns system · level · days · reason as checked JSON</text>
+    <line x1="712" y1="12" x2="712" y2="58" stroke="#6a4df5" stroke-opacity=".3"/>
+    <text class="file" x="732" y="29" fill="#6a4df5">llm.py → Gemini API</text>
+    <text class="file" x="732" y="50" fill="#6a4df5">schemas.py · guard.py</text>
+  </g>
+  <polyline points="107,188 115,196 123,188" fill="none" stroke="#9aa7b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 3 Retrieve -->
+  <g transform="translate(0,204)">
+    <rect x="20" y="0" width="960" height="70" rx="10" fill="#e5f5f5" stroke="#0e8a8a"/>
+    <rect x="20" y="0" width="190" height="70" rx="10" fill="#0e8a8a"/><rect x="200" y="0" width="10" height="70" fill="#0e8a8a"/>
+    <text class="num" x="38" y="44">3</text><text class="name" x="66" y="42">Retrieve</text>
+    <text class="what" x="232" y="29">Collects the policy and the people</text>
+    <text class="how"  x="232" y="51">TF-IDF search + exact policy read · employee, requester and manager</text>
+    <line x1="712" y1="12" x2="712" y2="58" stroke="#0e8a8a" stroke-opacity=".3"/>
+    <text class="file" x="732" y="29" fill="#0e8a8a">search_policies · read_policy</text>
+    <text class="file" x="732" y="50" fill="#0e8a8a">lookup_user · tools.py</text>
+  </g>
+  <polyline points="107,276 115,284 123,276" fill="none" stroke="#9aa7b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 4 Decide -->
+  <g transform="translate(0,292)">
+    <rect x="20" y="0" width="960" height="70" rx="10" fill="#e8f0fc" stroke="#2563c9"/>
+    <rect x="20" y="0" width="190" height="70" rx="10" fill="#2563c9"/><rect x="200" y="0" width="10" height="70" fill="#2563c9"/>
+    <text class="num" x="38" y="44">4</text><text class="name" x="66" y="42">Decide</text>
+    <text class="what" x="232" y="29">Rules decide — never the LLM</text>
+    <text class="how"  x="232" y="51">Allowed, blocked or missing info · duration capped · plan + plan_hash</text>
+    <line x1="712" y1="12" x2="712" y2="58" stroke="#2563c9" stroke-opacity=".3"/>
+    <text class="file" x="732" y="29" fill="#2563c9">guard.py</text>
+    <text class="file" x="732" y="50" fill="#2563c9">engine.py (plan, approver)</text>
+  </g>
+  <polyline points="107,364 115,372 123,364" fill="none" stroke="#9aa7b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 5 Approve -->
+  <g transform="translate(0,380)">
+    <rect x="20" y="0" width="960" height="70" rx="10" fill="#fff4e2" stroke="#c26a00" stroke-width="1.6"/>
+    <rect x="20" y="0" width="190" height="70" rx="10" fill="#c26a00"/><rect x="200" y="0" width="10" height="70" fill="#c26a00"/>
+    <text class="num" x="38" y="44">5</text><text class="name" x="66" y="42">Approve</text>
+    <text class="what" x="232" y="29">Stops until the right manager decides</text>
+    <text class="how"  x="232" y="51">Direct manager (or theirs) · never the requester · bound to plan_hash</text>
+    <line x1="712" y1="12" x2="712" y2="58" stroke="#c26a00" stroke-opacity=".3"/>
+    <text class="file" x="732" y="29" fill="#c26a00">approve · reject (CLI)</text>
+    <text class="file" x="732" y="50" fill="#c26a00">engine.py · state.py</text>
+  </g>
+  <polyline points="107,452 115,460 123,452" fill="none" stroke="#9aa7b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 6 Execute -->
+  <g transform="translate(0,468)">
+    <rect x="20" y="0" width="960" height="70" rx="10" fill="#e8f7f0" stroke="#168b68"/>
+    <rect x="20" y="0" width="190" height="70" rx="10" fill="#168b68"/><rect x="200" y="0" width="10" height="70" fill="#168b68"/>
+    <text class="num" x="38" y="44">6</text><text class="name" x="66" y="42">Execute</text>
+    <text class="what" x="232" y="29">Grants the access — exactly once</text>
+    <text class="how"  x="232" y="51">Same plan? rules re-checked on fresh data · idempotency key · retries</text>
+    <line x1="712" y1="12" x2="712" y2="58" stroke="#168b68" stroke-opacity=".3"/>
+    <text class="file" x="732" y="29" fill="#168b68">grant_access · tools.py</text>
+    <text class="file" x="732" y="50" fill="#168b68">engine.py · guard.py</text>
+  </g>
+  <polyline points="107,540 115,548 123,540" fill="none" stroke="#9aa7b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 7 Verify & Report -->
+  <g transform="translate(0,556)">
+    <rect x="20" y="0" width="960" height="70" rx="10" fill="#fbeaf3" stroke="#a3366f"/>
+    <rect x="20" y="0" width="190" height="70" rx="10" fill="#a3366f"/><rect x="200" y="0" width="10" height="70" fill="#a3366f"/>
+    <text class="num" x="38" y="44">7</text><text class="name" x="66" y="42">Verify &amp; Report</text>
+    <text class="what" x="232" y="29">Proves it happened and records it</text>
+    <text class="how"  x="232" y="51">Directory read again (5 checks) · every step audited · As-Built HTML</text>
+    <line x1="712" y1="12" x2="712" y2="58" stroke="#a3366f" stroke-opacity=".3"/>
+    <text class="file" x="732" y="29" fill="#a3366f">lookup_user</text>
+    <text class="file" x="732" y="50" fill="#a3366f">audit.py · report.py</text>
+  </g>
+
+  <text class="foot" x="20" y="664">Every tool call goes through the tool gateway in engine.py: allow-list · input/output schema · bounded retry · audit.</text>
+</svg>
