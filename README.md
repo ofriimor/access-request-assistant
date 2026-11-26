@@ -61,7 +61,7 @@ cp .env.example .env              # then set GEMINI_API_KEY in .env
 |---|---|
 | Action without approval | `execute` needs a valid approval by the employee's direct manager — or the manager's manager when the manager submitted (no self-approval) |
 | Changes after approval | Approval is bound to a hash of the plan; the rules run again on fresh directory data just before execution |
-| Duplicate grants | Content-based request ID · idempotency key · "already has this access" check |
+| Duplicate grants | **Same text** (ignoring spaces and letter case) → same request ID → the earlier result is returned. **Same need, other words** → a new request, but the rules block it: "already has this access", checked again just before execute. One grant either way |
 | Prompt injection, claims in the text | Text is data; Gemini returns only fixed values and never sees the policies; identity and role come from the directory; the code decides |
 | Disabled users | Cannot receive, request or approve access |
 | Gemini or tool failure | Bounded retries, then a safe stop — nothing is executed; when Gemini is down the user sees **MODEL PROBLEM** |
