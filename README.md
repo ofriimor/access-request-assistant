@@ -23,30 +23,14 @@ Python 3.10+ and a [Gemini API key](https://aistudio.google.com/apikey).
 ```bash
 pip install -r requirements.txt
 cp .env.example .env              # then set GEMINI_API_KEY in .env
-python demo.py --pause            # the 5 required scenarios + As-Built report
 ```
 
 | Goal | Command |
 |---|---|
+| The 5 required scenarios + As-Built report | `python demo.py --pause` |
 | Your own request, approved by you as the manager | `python -m app interactive` |
 | One scenario / all scenarios | `python -m app scenario <name>` · `python -m app scenario --all` |
 | Clean state | `python -m app reset` |
-
-<details>
-<summary><b>Step-by-step commands</b></summary>
-
-```bash
-python -m app submit allow/00_happy_path        # stops for approval, prints REQ-<id>
-python -m app execute REQ-<id>                   # refused: no approval yet
-python -m app approve REQ-<id> --by u1001        # the manager approves
-python -m app execute REQ-<id>                   # grants and verifies -> COMPLETED
-python -m app status  REQ-<id>
-python -m app audit   REQ-<id>
-python -m app report                             # writes reports/as_built.html
-```
-
-Also available: `reject REQ-<id> --by <id> --reason "..."`, `execute REQ-<id> --simulate-failure timeout`, `reset`.
-</details>
 
 ## Architecture
 
