@@ -2,7 +2,7 @@
 
 | File | What it shows | How it was produced |
 | --- | --- | --- |
-| `test_results.xml` | JUnit results of the 75 automated tests (including the 36 scenarios in data/scenarios/), run against the Gemini API | `python demo.py --tests --save-evidence` |
+| `test_results.xml` | JUnit results of the automated tests (including the 36 scenarios in data/scenarios/), run against the Gemini API | `python demo.py --tests --save-evidence` |
 | `as_built.html` | As-Built handover report of a full run | `python demo.py --save-evidence` |
 | `audit.jsonl` | Full audit trail of that run: steps, LLM extraction, tool calls, approvals, errors, final status | same run |
 | `scenarios_as_built.html` | As-Built report of all 36 scenarios run live, end to end, with expected vs. actual decisions | `python -m app scenario --all --save-evidence` |
