@@ -50,7 +50,7 @@ STATUS_TONE = {
 BAD_EVENTS = {"tool_error", "failed_safe", "execute_blocked", "validation_failed", "tool_schema_rejected",
               "tool_blocked", "approval_refused", "verification_failed", "unknown_user", "llm_output_invalid", "model_unavailable"}
 GOOD_EVENTS = {"approved", "verified", "plan_created"}
-NOTE_EVENTS = {"rejected", "replay_detected", "replay_no_op", "idempotent_hit", "retry_after_failed_safe"}
+NOTE_EVENTS = {"rejected", "replay_detected", "replay_no_op", "idempotent_hit", "retry_after_failed_safe", "resubmitted_after_rejection"}
 
 
 def read_junit(path: Path) -> dict | None:

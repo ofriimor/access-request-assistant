@@ -145,10 +145,14 @@ class Engine:
 
         rid = make_request_id(req)
         existing = self.store.get(rid)
-        # A request that stopped on an outage BEFORE any approval (Gemini down, directory
-        # timeout) is run again; nothing was approved or executed, so this is safe.
-        retry = existing is not None and existing["status"] == Status.FAILED_SAFE.value \
+        # Submitting the same request again starts a new attempt when the last one ended
+        # without any action: it stopped on an outage before approval (Gemini down, directory
+        # timeout), or the manager rejected it. Nothing was executed, so this is safe; the
+        # earlier attempt stays in the history and the audit trail.
+        stopped_safely = existing is not None and existing["status"] == Status.FAILED_SAFE.value \
             and not existing.get("approval")
+        rejected = existing is not None and existing["status"] == Status.REJECTED.value
+        retry = stopped_safely or rejected
         if existing and not retry:
             self.audit.log(rid, "intake", "replay_detected",
                            {"status": existing["status"], "action": "returned existing record, nothing re-run"})
@@ -160,11 +164,15 @@ class Engine:
                  "history": [{"ts": now_iso(), "status": "RECEIVED", "note": "intake ok"}]}
         if retry:
             state["created_at"] = existing["created_at"]
-            state["history"] = existing["history"] + [
-                {"ts": now_iso(), "status": "RECEIVED", "note": "re-submitted after a safe stop"}]
+            note = "re-submitted after a rejection" if rejected else "re-submitted after a safe stop"
+            state["history"] = existing["history"] + [{"ts": now_iso(), "status": "RECEIVED", "note": note}]
             self.store.save(state)
-            self.audit.log(rid, "intake", "retry_after_failed_safe",
-                           {"previous_error": existing.get("error"), "input": req.model_dump()})
+            if rejected:
+                self.audit.log(rid, "intake", "resubmitted_after_rejection",
+                               {"previous_approval": existing.get("approval"), "input": req.model_dump()})
+            else:
+                self.audit.log(rid, "intake", "retry_after_failed_safe",
+                               {"previous_error": existing.get("error"), "input": req.model_dump()})
         else:
             self.store.create(state)
             self.audit.log(rid, "intake", "accepted", {"input": req.model_dump()})

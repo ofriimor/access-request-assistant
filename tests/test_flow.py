@@ -250,3 +250,20 @@ def test_recovery_after_crash_is_not_treated_as_duplicate(engine):
     final = engine.execute(rid)
     assert final["status"] == "COMPLETED"
     assert len(directory_grants(engine, "u1002")) == 1
+
+
+def test_request_can_be_resubmitted_after_a_rejection(engine):
+    """The manager rejected it; the employee submits it again (e.g. after talking to the
+    manager). It is a new attempt that can be approved - not a replay of the rejection."""
+    first = engine.submit(load_request("allow/00_happy_path"))
+    rid = first["request_id"]
+    engine.decide(rid, first["approver_required"], False, "not now")
+    assert engine.status(rid)["status"] == "REJECTED"
+
+    again = engine.submit(load_request("allow/00_happy_path"))
+    assert again["request_id"] == rid and not again.get("replayed")
+    assert again["status"] == "AWAITING_APPROVAL" and "approval" not in again
+
+    engine.decide(rid, again["approver_required"], True)
+    assert engine.execute(rid)["status"] == "COMPLETED"
+    assert any(e["event"] == "resubmitted_after_rejection" for e in engine.audit.read(rid))

@@ -63,7 +63,7 @@ To add a case, add a JSON file to the right folder; no code change is needed.
 | `AWAITING_APPROVAL` | Plan built, waiting for the direct manager | `approve` / `reject` |
 | `NEEDS_INFO` | Mandatory field missing | Resubmit with the missing details |
 | `BLOCKED` | Policy / identity / injection rule, or a rule that failed when re-checked just before execute | No action via the assistant; escalate if needed |
-| `REJECTED` | Manager rejected | None; execute is refused |
+| `REJECTED` | Manager rejected | Execute is refused. Submitting the same request again starts a new attempt for approval (the rejection stays in the audit) |
 | `FAILED_SAFE` | LLM or tool failure; nothing unsafe was done. A model failure is shown as **MODEL PROBLEM** | Before approval: submit the same request again (it re-runs). After approval: fix the cause, re-run `execute` (approval is kept) |
 | `VERIFICATION_FAILED` | Read-back did not match the plan | Investigate directory state; see audit |
 | `COMPLETED` | Granted and verified | None |
