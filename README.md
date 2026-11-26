@@ -30,7 +30,6 @@ python demo.py --pause            # the 5 required scenarios + As-Built report
 |---|---|
 | Your own request, approved by you as the manager | `python -m app interactive` |
 | One scenario / all scenarios | `python -m app scenario <name>` · `python -m app scenario --all` |
-| Tests (against Gemini) | `python -m pytest -v` |
 | Clean state | `python -m app reset` |
 
 <details>
