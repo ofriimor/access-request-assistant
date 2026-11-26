@@ -375,12 +375,12 @@
     <section id="tests">
       <h2>בדיקות</h2>
       {% if tests %}
-      <p class="score"><b>{{ tests.passed }} מתוך {{ tests.total }}</b> בדיקות אוטומטיות עברו בריצה הזו (<code>python -m pytest</code>){% if tests.skipped %}, {{ tests.skipped }} דולגו{% endif %}.</p>
+      <p class="score"><b>{{ tests.passed }} מתוך {{ tests.total }}</b> בדיקות עברו בריצה הזו (<code>python demo.py</code>: כל תרחישי החובה ובדיקות סעיף 7){% if tests.skipped %}, {{ tests.skipped }} דולגו{% endif %}.</p>
       <ul class="tests">
         {% for c in tests.cases %}<li><span class="{{ 'ok' if c.ok else ('skip' if c.skipped else 'no') }}">{{ "✓" if c.ok else ("–" if c.skipped else "✗") }}</span><span>{{ c.readable }}</span></li>{% endfor %}
       </ul>
       {% else %}
-      <p class="intro">אין תוצאות בדיקות בריצה הזו. כדי לצרף אותן, הריצו <code>python demo.py --tests</code>.</p>
+      <p class="intro">הבדיקות של סעיף 7 רצות ב־<code>python demo.py</code> ומופיעות בדוח שלו.</p>
       {% endif %}
     </section>
 

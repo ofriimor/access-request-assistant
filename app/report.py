@@ -2,7 +2,7 @@
 Generates reports/as_built.html from the data of the run:
   - all requests in the state DB (scenario results)
   - the audit log (per-request timeline)
-  - pytest JUnit XML (test evidence), if runtime/test_results.xml exists
+  - JUnit XML of the checks (runtime/test_results.xml, written by demo.py), if it exists
 """
 from __future__ import annotations
 

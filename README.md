@@ -27,7 +27,7 @@ cp .env.example .env              # then set GEMINI_API_KEY in .env
 
 | Goal | Command |
 |---|---|
-| The 5 required scenarios + As-Built report | `python demo.py --pause` |
+| The 5 required scenarios + every required check + As-Built report | `python demo.py --pause` |
 | Your own request, approved by you as the manager | `python -m app interactive` |
 | One scenario / all scenarios | `python -m app scenario <name>` · `python -m app scenario --all` |
 | Clean state | `python -m app reset` |
@@ -77,7 +77,7 @@ cp .env.example .env              # then set GEMINI_API_KEY in .env
 | `blocked/` · 13 | blocked, with the reason | admin · injection (English, Hebrew) · wrong department · level too high · disabled or unknown user · colleague requesting for someone else · no independent approver |
 | `invalid/` · 4 | rejected before Gemini is called | text too short or too long · bad user ID · missing field |
 
-The automated tests (`tests/`) run every scenario plus the flow rules: approval, separation of duties, re-check before execute, tool failures, idempotency, malicious tool parameters. The model is never faked; only failures are simulated. Results of the last full run are in [`evidence/`](evidence/).
+`python demo.py` is also the test harness: it checks every requirement of the assignment — input validation, knowledge match, no execute without approval, tool failure, idempotency, injection — prints ✓/✗ for each and ends with `N/N checks passed`. The model is never faked; only failures are simulated. Results of the last run are in [`evidence/`](evidence/).
 
 <details>
 <summary><b>Requirements coverage</b></summary>

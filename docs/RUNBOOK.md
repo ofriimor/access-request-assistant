@@ -5,14 +5,13 @@
 1. Python 3.10+: `python -m pip install -r requirements.txt`
 2. `copy .env.example .env` (Linux/macOS: `cp .env.example .env`) and set `GEMINI_API_KEY`.
    `.env` is git-ignored; never commit keys.
-3. Sanity check: `python -m pytest -v` (runs against the Gemini API; needs the key and uses API quota).
+3. Sanity check: `python demo.py` runs every required scenario and check and ends with `N/N checks passed` (uses the Gemini API).
 
 ## 2. Run
 
 | Goal | Command |
 | --- | --- |
-| Demo: the 5 required scenarios + As-Built report (~1 min) | `python demo.py` |
-| Demo with the automated tests included in the report | `python demo.py --tests` |
+| Demo + checks: the required scenarios, every check of section 7, As-Built report (~1 min) | `python demo.py` |
 | Live demo with a pause between scenarios | `python demo.py --pause` |
 | Your own request, interactive manager decision | `python -m app interactive` |
 | Reset local state (directory, SQLite, audit) | `python -m app reset` |
@@ -50,8 +49,6 @@ Each file holds a description, the request and the expected result.
 | ... with a tool failure and recovery | `python -m app scenario allow/11_manager_requests_for_employee --simulate-failure timeout` |
 | Run all, end to end, and build the As-Built report | `python -m app scenario --all` (add `--save-evidence` to copy it to `evidence/`) |
 | Submit one into the step-by-step flow | `python -m app submit allow/00_happy_path` |
-| Test all scenarios automatically | `python -m pytest tests/test_scenarios.py -v` |
-| Test one scenario automatically | `python -m pytest tests/test_scenarios.py -v -k hebrew` |
 
 A short name works when it is unique, e.g. `python -m app scenario 00_happy_path`.
 To add a case, add a JSON file to the right folder; no code change is needed.
